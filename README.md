@@ -1,21 +1,26 @@
 # ProofPress Evidence World
 
-Full guided Three.js journey with **Scout**, an interactive 3D guide character.
+Continuous Scout-led Three.js journey. Constraint-first: dark editorial stage, Fraunces + Manrope HUD, no purple/Inter/emoji spam.
 
-## Chapters
-1. Welcome  
-2. Problem  
-3. Rules (Agent Instructions)  
-4. Pipeline  
-5. Approved claim stage  
-6. Held quarantine  
-7. Human review handoff  
+## Cast
+- **Scout** — persistent guide (walk cycle on lead, beckon on idle)
+- **Archivist** — Rules room accent
+- **Auditor** — Held quarantine sentinel
+
+## Chapters & beats
+1. Welcome — floor ring + gate dissolve  
+2. Problem — risk panel pulse  
+3. Rules — Archivist + monolith  
+4. Pipeline — stations light in sequence  
+5. Approved — decorative panels lift (ledger below is truth)  
+6. Held — Auditor + amber barrier  
+7. Human — portal opens; Scout points to CMS Claim Ledger  
 
 ## Controls
-- Click **Meet Scout & enter**
-- **Follow Scout →** or scroll / Space to advance
-- Drag to look; chapter dots or keys 1–7 to jump
+- **Meet Scout & enter**
+- **Follow Scout →** / scroll / Space
+- Drag to look; chapter dots or keys 1–7
 
-Decorative metaphor — the Webflow Claim Ledger remains the Approved CMS source of truth.
+Decorative metaphor only — Webflow Claim Ledger remains Approved CMS source of truth.
 
-Live: https://knarayanareddy.github.io/proofpress-evidence-portal/
+Live: https://knarayanareddy.github.io/proofpress-evidence-portal/?v=5

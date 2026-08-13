@@ -4,94 +4,164 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>ProofPress — Guided Evidence World</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <style>
-    :root { color-scheme: dark; }
+    :root {
+      color-scheme: dark;
+      --ink: #070b16;
+      --panel: rgba(14, 20, 36, .92);
+      --line: #2a3348;
+      --mist: #a8b0c4;
+      --paper: #f4f7ff;
+      --signal: #2457e6;
+      --signal-soft: #4f7cff;
+      --mint: #14b87a;
+      --amber: #f0a202;
+      --risk: #ff5a45;
+      --font-display: "Fraunces", "Times New Roman", serif;
+      --font-body: "Manrope", "Segoe UI", sans-serif;
+      --ease: cubic-bezier(.22, 1, .36, 1);
+    }
     * { box-sizing: border-box; }
-    html, body { margin: 0; height: 100%; overflow: hidden; background: #070b16; font-family: system-ui, -apple-system, sans-serif; cursor: grab; }
+    html, body {
+      margin: 0; height: 100%; overflow: hidden; background: var(--ink);
+      font-family: var(--font-body); cursor: grab;
+    }
     body.is-dragging { cursor: grabbing; }
     canvas { display: block; width: 100%; height: 100%; touch-action: none; }
     .topbar {
-      position: absolute; top: 14px; left: 14px; right: 14px; z-index: 6;
+      position: absolute; top: 16px; left: 16px; right: 16px; z-index: 6;
       display: flex; justify-content: space-between; gap: 12px; pointer-events: none;
     }
     .hint, .brand {
-      font-size: 11px; letter-spacing: .12em; text-transform: uppercase;
-      color: #a8b0c4; background: rgba(18,26,44,.82); border: 1px solid #2a3348; padding: 8px 10px;
+      font-size: 11px; letter-spacing: .14em; text-transform: uppercase;
+      color: var(--mist); background: var(--panel); border: 1px solid var(--line);
+      padding: 9px 12px;
     }
-    .brand { color: #f4f7ff; font-weight: 600; letter-spacing: .08em; }
+    .brand {
+      color: var(--paper); font-weight: 700; letter-spacing: .12em;
+      font-family: var(--font-display); font-size: 15px; text-transform: none; letter-spacing: .02em;
+    }
     .chapters {
-      position: absolute; top: 50%; right: 14px; transform: translateY(-50%);
-      display: flex; flex-direction: column; gap: 10px; z-index: 6;
+      position: absolute; top: 50%; right: 16px; transform: translateY(-50%);
+      display: flex; flex-direction: column; gap: 12px; z-index: 6;
     }
     .chapters button {
-      width: 11px; height: 11px; border-radius: 50%; padding: 0; cursor: pointer;
-      border: 1px solid #4f7cff; background: transparent;
+      width: 10px; height: 10px; border-radius: 50%; padding: 0; cursor: pointer;
+      border: 1px solid var(--signal-soft); background: transparent;
+      transition: background .25s var(--ease), box-shadow .25s var(--ease), transform .25s var(--ease);
     }
-    .chapters button[aria-current="true"] { background: #4f7cff; box-shadow: 0 0 14px rgba(79,124,255,.55); }
+    .chapters button:hover { transform: scale(1.25); }
+    .chapters button[aria-current="true"] {
+      background: var(--signal-soft);
+      box-shadow: 0 0 12px rgba(79,124,255,.45);
+    }
     .progress {
-      position: absolute; left: 0; top: 0; height: 3px; width: 0%; z-index: 7;
-      background: linear-gradient(90deg, #2457e6, #14b87a, #f0a202);
-      transition: width .35s ease;
+      position: absolute; left: 0; top: 0; height: 2px; width: 0%; z-index: 7;
+      background: linear-gradient(90deg, var(--signal), var(--mint), var(--amber));
+      transition: width .35s var(--ease);
     }
     .hud {
       position: absolute; left: 0; right: 0; bottom: 0; z-index: 6;
-      padding: 24px 20px 20px;
-      background: linear-gradient(transparent, rgba(7,11,22,.96) 38%);
-      color: #c9d2e3; pointer-events: none;
+      padding: 28px 22px 22px;
+      background: linear-gradient(transparent, rgba(7,11,22,.97) 42%);
+      color: var(--mist); pointer-events: none;
     }
     .speech {
-      display: inline-flex; align-items: flex-start; gap: 12px; max-width: 640px;
-      margin-bottom: 14px; padding: 12px 14px; border: 1px solid #2a3348;
-      background: rgba(18,26,44,.88); pointer-events: auto;
+      display: inline-flex; align-items: flex-start; gap: 12px; max-width: 36rem;
+      margin-bottom: 16px; padding: 12px 14px; border: 1px solid var(--line);
+      background: var(--panel); pointer-events: auto;
+      transition: border-color .25s var(--ease);
     }
+    .speech.leading { border-color: var(--signal-soft); }
     .speech .avatar {
-      width: 36px; height: 36px; border-radius: 8px; flex: 0 0 auto;
-      background: linear-gradient(160deg, #2457e6, #14b87a);
-      box-shadow: 0 0 16px rgba(36,87,230,.35);
+      width: 36px; height: 36px; border-radius: 6px; flex: 0 0 auto;
+      background: linear-gradient(160deg, var(--signal), var(--mint));
     }
-    .speech p { margin: 0; font-size: 14px; line-height: 1.45; color: #f4f7ff; }
-    .speech small { display: block; margin-top: 4px; color: #a8b0c4; font-size: 11px; letter-spacing: .1em; text-transform: uppercase; }
-    .hud .room { font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: #4f7cff; margin-bottom: 6px; }
-    .hud strong { display: block; color: #f4f7ff; font-size: 24px; font-weight: 600; letter-spacing: -.015em; }
-    .hud .body { display: block; margin-top: 6px; font-size: 14px; line-height: 1.5; max-width: 42rem; opacity: .92; }
+    .speech p {
+      margin: 0; font-size: 14px; line-height: 1.5; color: var(--paper);
+      font-weight: 500; letter-spacing: -.01em;
+    }
+    .speech small {
+      display: block; margin-top: 5px; color: var(--mist);
+      font-size: 10px; letter-spacing: .14em; text-transform: uppercase; font-weight: 600;
+    }
+    .hud .room {
+      font-size: 11px; letter-spacing: .16em; text-transform: uppercase;
+      color: var(--signal-soft); margin-bottom: 8px; font-weight: 600;
+    }
+    .hud strong {
+      display: block; color: var(--paper);
+      font-family: var(--font-display); font-size: clamp(22px, 3.2vw, 30px);
+      font-weight: 600; letter-spacing: -.02em; line-height: 1.15;
+    }
+    .hud .body {
+      display: block; margin-top: 8px; font-size: 14px; line-height: 1.55;
+      max-width: 40rem; color: #c5cddd; font-weight: 400;
+    }
     .actions {
-      margin-top: 14px; display: flex; flex-wrap: wrap; gap: 10px; pointer-events: auto;
+      margin-top: 18px; display: flex; flex-wrap: wrap; gap: 10px; pointer-events: auto;
     }
     .actions button, .actions a {
-      font: 600 14px system-ui, sans-serif; color: #fff; text-decoration: none;
-      background: #2457e6; border: 0; padding: 12px 16px; cursor: pointer;
-      box-shadow: 0 10px 24px rgba(36,87,230,.3);
+      font-family: var(--font-body); font-weight: 600; font-size: 14px;
+      color: #fff; text-decoration: none; background: var(--signal); border: 0;
+      padding: 12px 18px; cursor: pointer;
+      transition: transform .22s var(--ease), background .22s var(--ease), opacity .22s var(--ease);
     }
+    .actions button:hover:not(:disabled) { transform: translateY(-1px); background: #1e4bc9; }
     .actions button:disabled { opacity: .55; cursor: wait; }
     .actions .ghost {
-      background: transparent; border: 1px solid #4f7cff; color: #c9d2e3;
-      box-shadow: none;
+      background: transparent; border: 1px solid var(--signal-soft); color: #c9d2e3;
     }
+    .actions .ghost:hover:not(:disabled) { background: rgba(79,124,255,.08); }
     .gate {
       position: absolute; inset: 0; z-index: 9;
       display: grid; place-items: center;
-      background: radial-gradient(ellipse at center, rgba(36,87,230,.18), rgba(7,11,22,.82));
+      background: radial-gradient(ellipse at 50% 42%, rgba(36,87,230,.16), rgba(7,11,22,.88));
+      transition: opacity .4s var(--ease);
     }
+    .gate.is-leaving { opacity: 0; pointer-events: none; }
     .gate[hidden] { display: none !important; }
     .gate-card {
-      text-align: center; max-width: 420px; padding: 28px 24px;
-      border: 1px solid #2a3348; background: rgba(11,16,32,.92);
+      text-align: left; max-width: 440px; padding: 32px 28px;
+      border: 1px solid var(--line); background: rgba(11,16,32,.94);
     }
-    .gate-card h1 { margin: 0 0 8px; color: #f4f7ff; font-size: 28px; }
-    .gate-card p { margin: 0 0 18px; color: #a8b0c4; line-height: 1.5; }
+    .gate-card .eyebrow {
+      margin: 0 0 10px; font-size: 11px; letter-spacing: .16em;
+      text-transform: uppercase; color: var(--signal-soft); font-weight: 600;
+    }
+    .gate-card h1 {
+      margin: 0 0 10px; color: var(--paper);
+      font-family: var(--font-display); font-size: clamp(28px, 5vw, 36px);
+      font-weight: 600; letter-spacing: -.02em; line-height: 1.1;
+    }
+    .gate-card p {
+      margin: 0 0 22px; color: var(--mist); line-height: 1.55; font-size: 15px;
+    }
     .gate-card button {
-      font: 600 15px system-ui, sans-serif; color: #fff; background: #2457e6;
-      border: 0; padding: 14px 22px; cursor: pointer;
+      font-family: var(--font-body); font-weight: 600; font-size: 15px;
+      color: #fff; background: var(--signal); border: 0; padding: 14px 22px; cursor: pointer;
+      transition: transform .22s var(--ease), background .22s var(--ease);
     }
+    .gate-card button:hover { transform: translateY(-1px); background: #1e4bc9; }
     .flash {
       position: absolute; inset: 0; z-index: 5; pointer-events: none;
-      background: radial-gradient(ellipse at 50% 40%, rgba(79,124,255,.28), transparent 55%);
-      opacity: 0; transition: opacity .25s ease;
+      background: radial-gradient(ellipse at 50% 40%, rgba(79,124,255,.22), transparent 55%);
+      opacity: 0; transition: opacity .28s var(--ease);
     }
     .flash.on { opacity: 1; }
     @media (max-width: 640px) {
-      .hud strong { font-size: 18px; }
-      .speech { max-width: 100%; }
+      .topbar { top: 10px; left: 10px; right: 10px; }
+      .chapters { right: 10px; gap: 10px; }
+      .hud { padding: 20px 14px 16px; }
+      .hud strong { font-size: 20px; }
+      .speech { max-width: 100%; margin-bottom: 12px; }
+      .actions { margin-top: 14px; }
+      .actions button { padding: 11px 14px; font-size: 13px; }
+      .hint { display: none; }
+      .gate-card { margin: 16px; padding: 24px 20px; }
     }
   </style>
 </head>
@@ -100,7 +170,7 @@
   <div class="flash" id="flash" aria-hidden="true"></div>
   <div class="topbar">
     <div class="brand">ProofPress</div>
-    <div class="hint">Drag to look · Follow Scout / scroll</div>
+    <div class="hint">Drag to look · Follow Scout</div>
   </div>
   <nav class="chapters" id="chapters" aria-label="Chapters"></nav>
   <div class="hud">
@@ -121,8 +191,9 @@
   </div>
   <div class="gate" id="gate">
     <div class="gate-card">
+      <p class="eyebrow">Evidence world</p>
       <h1>ProofPress</h1>
-      <p>Enter a guided 3D evidence world. Scout leads you from rules to approved claims—then shows what stays held.</p>
+      <p>Scout leads you from rules to approved claims—then shows what stays held. The CMS ledger below remains the source of truth.</p>
       <button type="button" id="enter">Meet Scout & enter</button>
     </div>
   </div>
@@ -156,35 +227,35 @@
         label: '03 — Rules',
         title: 'Agent Instructions',
         body: 'Voice, evidence, reuse, and publishing rules stay saved before the agent builds.',
-        scout: 'Rules first. I guard this monolith so the agent can’t freestyle facts.',
+        scout: 'Meet the Archivist. Rules first—so the agent can’t freestyle facts.',
         z: -24,
       },
       {
         label: '04 — Pipeline',
         title: 'Rules → CMS → Review',
         body: 'Build from Approved proof and the design system, then keep release human.',
-        scout: 'Three stations. Follow the lights—I’ll wait at Review.',
+        scout: 'Three stations. Watch them light as we pass—I’ll wait at Review.',
         z: -36,
       },
       {
         label: '05 — Approved',
         title: 'Claim stage',
         body: 'Decorative panels mirror Approved CMS language. The live ledger on the page is the source of truth.',
-        scout: 'These glow green because they’re Approved. Tap Follow and I’ll show what we refuse.',
+        scout: 'These lift because they’re Approved. Follow me—I’ll show what we refuse.',
         z: -48,
       },
       {
         label: '06 — Held',
         title: 'Needs approval',
         body: '“Cuts campaign launch time by 80%.” No approved source. Not used as public proof.',
-        scout: 'Amber gate. This claim stays quarantined until a human approves a source.',
+        scout: 'Auditor holds the line. This claim stays quarantined until a human approves a source.',
         z: -60,
       },
       {
         label: '07 — Human',
         title: 'Build from what you know is true',
         body: 'Give the agent context. Keep the final decision human. Scroll the page below for the CMS Claim Ledger.',
-        scout: 'Journey done. The real ledger lives on the page under this world—go inspect Approved records.',
+        scout: 'Journey done. Scroll below—this portal opens onto the real CMS Claim Ledger.',
         z: -72,
       },
     ];
@@ -199,17 +270,19 @@
     const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
     let room = 0;
-    let camT = 0;          // 0..lastRoom continuous camera path
-    let scoutT = 0;        // Scout leads on the path
+    let camT = 0;
+    let scoutT = 0;
     let dragging = false;
     let lastX = 0, lastY = 0;
     let yaw = 0, pitch = 0, targetYaw = 0, targetPitch = 0;
     let running = false;
     let transitioning = false;
-    let phase = 'idle'; // idle | scout-lead | cam-chase
+    let phase = 'idle';
     let phaseT = 0;
     let fromRoom = 0;
     let toRoom = 0;
+    let beatT = 0;
+    let beatActive = false;
 
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x070b16);
@@ -221,11 +294,11 @@
     renderer.setSize(innerWidth, innerHeight);
     document.body.prepend(renderer.domElement);
 
-    scene.add(new THREE.AmbientLight(0x6a7aaa, 0.55));
-    const key = new THREE.DirectionalLight(0xffffff, 0.95);
+    scene.add(new THREE.AmbientLight(0x6a7aaa, 0.5));
+    const key = new THREE.DirectionalLight(0xffffff, 0.9);
     key.position.set(4, 10, 6);
     scene.add(key);
-    const blue = new THREE.PointLight(0x2457e6, 1.3, 30);
+    const blue = new THREE.PointLight(0x2457e6, 1.15, 30);
     blue.position.set(-3, 3, 2);
     scene.add(blue);
 
@@ -239,7 +312,7 @@
       const grid = new THREE.GridHelper(16, 16, 0x2457e6, 0x1a2438);
       grid.position.z = z;
       grid.material.transparent = true;
-      grid.material.opacity = 0.38;
+      grid.material.opacity = 0.32;
       scene.add(grid);
     }
 
@@ -265,16 +338,16 @@
       ctx.fillStyle = '#121a2c';
       ctx.fillRect(0, 0, 512, 340);
       ctx.fillStyle = accent;
-      ctx.fillRect(0, 0, 10, 340);
+      ctx.fillRect(0, 0, 8, 340);
       ctx.fillStyle = '#a8b0c4';
-      ctx.font = '600 20px system-ui, sans-serif';
+      ctx.font = '600 18px Manrope, system-ui, sans-serif';
       ctx.fillText(title, 28, 44);
       ctx.fillStyle = '#f4f7ff';
-      ctx.font = '500 24px Georgia, serif';
+      ctx.font = '500 26px Fraunces, Georgia, serif';
       let y = 96;
       for (const line of wrap(ctx, body, 450)) {
         ctx.fillText(line, 28, y);
-        y += 32;
+        y += 34;
       }
       return new THREE.CanvasTexture(canvas);
     }
@@ -287,7 +360,7 @@
       ));
       const rim = new THREE.Mesh(
         new THREE.BoxGeometry(w + 0.02, h + 0.02, 0.02),
-        new THREE.MeshStandardMaterial({ color: accentHex, emissive: accentHex, emissiveIntensity: 0.35 })
+        new THREE.MeshStandardMaterial({ color: accentHex, emissive: accentHex, emissiveIntensity: 0.28 })
       );
       rim.position.z = -0.05;
       g.add(rim);
@@ -297,49 +370,77 @@
       return g;
     }
 
-    function createScout() {
-      const scout = new THREE.Group();
+    function createFigure({ accent = 0x2457e6, mint = 0x14b87a, scale = 1 } = {}) {
+      const root = new THREE.Group();
       const bodyMat = new THREE.MeshStandardMaterial({ color: 0x1a2744, metalness: 0.35, roughness: 0.45 });
-      const accentMat = new THREE.MeshStandardMaterial({ color: 0x2457e6, emissive: 0x2457e6, emissiveIntensity: 0.55 });
-      const mintMat = new THREE.MeshStandardMaterial({ color: 0x14b87a, emissive: 0x14b87a, emissiveIntensity: 0.4 });
+      const accentMat = new THREE.MeshStandardMaterial({ color: accent, emissive: accent, emissiveIntensity: 0.45 });
+      const mintMat = new THREE.MeshStandardMaterial({ color: mint, emissive: mint, emissiveIntensity: 0.35 });
 
-      const torso = new THREE.Mesh(new THREE.CapsuleGeometry(0.28, 0.45, 6, 12), bodyMat);
-      torso.position.y = 0.85;
-      scout.add(torso);
+      const hips = new THREE.Group();
+      hips.position.y = 0.55 * scale;
+      root.add(hips);
 
-      const head = new THREE.Mesh(new THREE.SphereGeometry(0.26, 20, 16), bodyMat);
-      head.position.y = 1.45;
-      scout.add(head);
+      const torso = new THREE.Mesh(new THREE.CapsuleGeometry(0.28 * scale, 0.45 * scale, 6, 12), bodyMat);
+      torso.position.y = 0.3 * scale;
+      hips.add(torso);
 
-      const visor = new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.1, 0.08), accentMat);
-      visor.position.set(0, 1.48, 0.2);
-      scout.add(visor);
+      const head = new THREE.Mesh(new THREE.SphereGeometry(0.26 * scale, 20, 16), bodyMat);
+      head.position.y = 0.9 * scale;
+      hips.add(head);
 
-      const antenna = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.28, 8), accentMat);
-      antenna.position.set(0.12, 1.72, 0);
-      scout.add(antenna);
-      const tip = new THREE.Mesh(new THREE.SphereGeometry(0.05, 10, 10), mintMat);
-      tip.position.set(0.12, 1.88, 0);
-      scout.add(tip);
+      const visor = new THREE.Mesh(new THREE.BoxGeometry(0.36 * scale, 0.1 * scale, 0.08 * scale), accentMat);
+      visor.position.set(0, 0.93 * scale, 0.2 * scale);
+      hips.add(visor);
 
-      const armL = new THREE.Mesh(new THREE.CapsuleGeometry(0.07, 0.28, 4, 8), bodyMat);
-      armL.position.set(-0.38, 0.95, 0);
-      armL.rotation.z = 0.4;
-      scout.add(armL);
+      const antenna = new THREE.Mesh(new THREE.CylinderGeometry(0.02 * scale, 0.02 * scale, 0.28 * scale, 8), accentMat);
+      antenna.position.set(0.12 * scale, 1.17 * scale, 0);
+      hips.add(antenna);
+      const tip = new THREE.Mesh(new THREE.SphereGeometry(0.05 * scale, 10, 10), mintMat);
+      tip.position.set(0.12 * scale, 1.33 * scale, 0);
+      hips.add(tip);
+
+      const armL = new THREE.Mesh(new THREE.CapsuleGeometry(0.07 * scale, 0.28 * scale, 4, 8), bodyMat);
+      armL.position.set(-0.38 * scale, 0.4 * scale, 0);
+      armL.rotation.z = 0.35;
+      hips.add(armL);
       const armR = armL.clone();
-      armR.position.x = 0.38;
-      armR.rotation.z = -0.4;
-      scout.add(armR);
+      armR.position.x = 0.38 * scale;
+      armR.rotation.z = -0.35;
+      hips.add(armR);
 
-      const glow = new THREE.PointLight(0x4f7cff, 0.9, 6);
-      glow.position.set(0, 1.3, 0.4);
-      scout.add(glow);
+      const legL = new THREE.Mesh(new THREE.CapsuleGeometry(0.08 * scale, 0.32 * scale, 4, 8), bodyMat);
+      legL.position.set(-0.14 * scale, -0.35 * scale, 0);
+      hips.add(legL);
+      const legR = legL.clone();
+      legR.position.x = 0.14 * scale;
+      hips.add(legR);
 
-      scout.position.set(1.6, 0, 4);
-      scene.add(scout);
-      return { scout, armR, tip, visor };
+      const glow = new THREE.PointLight(accent, 0.7, 5.5);
+      glow.position.set(0, 1.1 * scale, 0.35 * scale);
+      root.add(glow);
+
+      return { root, hips, armR, armL, legL, legR, tip, visor, accentMat };
     }
-    const { scout, armR, tip, visor } = createScout();
+
+    const scoutParts = createFigure({ accent: 0x2457e6, mint: 0x14b87a, scale: 1 });
+    const scout = scoutParts.root;
+    scout.position.set(1.6, 0, 4);
+    scene.add(scout);
+
+    // Room props + beats
+    const welcomeRing = new THREE.Mesh(
+      new THREE.TorusGeometry(1.6, 0.04, 12, 64),
+      new THREE.MeshStandardMaterial({ color: 0x4f7cff, emissive: 0x2457e6, emissiveIntensity: 0.4 })
+    );
+    welcomeRing.position.set(0, 0.05, 0);
+    welcomeRing.rotation.x = Math.PI / 2;
+
+    let riskCard = null;
+    let riskPulse = 0;
+    const stations = [];
+    const approvedCards = [];
+    let humanPortal = null;
+    let barrierPosts = [];
 
     addFloor(0);
     {
@@ -347,21 +448,16 @@
       const card = makeCard(tex, 0x2457e6, 3.1, 1.8);
       card.position.set(-1.2, 1.5, -1.8);
       scene.add(card);
-      const ring = new THREE.Mesh(
-        new THREE.TorusGeometry(1.6, 0.04, 12, 64),
-        new THREE.MeshStandardMaterial({ color: 0x4f7cff, emissive: 0x2457e6, emissiveIntensity: 0.45 })
-      );
-      ring.position.set(0, 0.05, 0);
-      ring.rotation.x = Math.PI / 2;
-      scene.add(ring);
+      scene.add(welcomeRing);
     }
 
     addFloor(-12);
     {
       const tex = makeTextPanel('THE RISK', 'AI can generate a page. It can also invent the proof.', '#ff5a45');
-      const card = makeCard(tex, 0xff5a45, 2.8, 1.7);
-      card.position.set(0, 1.45, -12);
-      scene.add(card);
+      riskCard = makeCard(tex, 0xff5a45, 2.8, 1.7);
+      riskCard.position.set(0, 1.45, -12);
+      riskCard.userData.baseY = 1.45;
+      scene.add(riskCard);
     }
 
     addFloor(-24);
@@ -371,6 +467,13 @@
       card.position.set(0, 1.55, -24);
       scene.add(card);
     }
+
+    // Archivist — Rules room accent
+    const archivistParts = createFigure({ accent: 0x2457e6, mint: 0x4f7cff, scale: 0.92 });
+    const archivist = archivistParts.root;
+    archivist.position.set(-2.4, 0, -22.5);
+    archivist.visible = false;
+    scene.add(archivist);
 
     addFloor(-36);
     [
@@ -382,6 +485,9 @@
       const card = makeCard(tex, s.color, 2.1, 1.4);
       card.position.set(s.x, 1.4, -36);
       card.userData.float = i;
+      card.userData.baseEmissive = card.children[1].material.emissiveIntensity;
+      card.userData.lit = false;
+      stations.push(card);
       scene.add(card);
     });
 
@@ -391,6 +497,8 @@
       const card = makeCard(tex, parseInt(a.color.slice(1), 16), 2.25, 1.5);
       card.position.set(-2.6 + i * 2.6, 1.45, -48);
       card.userData.float = i + 3;
+      card.userData.baseY = 1.45;
+      approvedCards.push(card);
       scene.add(card);
     });
 
@@ -403,12 +511,28 @@
       [-2.1, 2.1].forEach((x) => {
         const post = new THREE.Mesh(
           new THREE.BoxGeometry(0.12, 2.3, 0.12),
-          new THREE.MeshStandardMaterial({ color: 0xf0a202, emissive: 0xf0a202, emissiveIntensity: 0.3 })
+          new THREE.MeshStandardMaterial({ color: 0xf0a202, emissive: 0xf0a202, emissiveIntensity: 0.28 })
         );
         post.position.set(x, 1.15, -58.5);
+        barrierPosts.push(post);
         scene.add(post);
       });
+      const bar = new THREE.Mesh(
+        new THREE.BoxGeometry(4.2, 0.08, 0.08),
+        new THREE.MeshStandardMaterial({ color: 0xf0a202, emissive: 0xf0a202, emissiveIntensity: 0.35, transparent: true, opacity: 0.85 })
+      );
+      bar.position.set(0, 1.7, -58.5);
+      bar.userData.barrier = true;
+      barrierPosts.push(bar);
+      scene.add(bar);
     }
+
+    // Auditor — Held room accent
+    const auditorParts = createFigure({ accent: 0xf0a202, mint: 0xff5a45, scale: 0.95 });
+    const auditor = auditorParts.root;
+    auditor.position.set(2.35, 0, -58.2);
+    auditor.visible = false;
+    scene.add(auditor);
 
     addFloor(-72);
     {
@@ -416,20 +540,25 @@
       const card = makeCard(tex, 0x14b87a, 3.1, 1.8);
       card.position.set(0, 1.5, -72);
       scene.add(card);
-      const portal = new THREE.Mesh(
+      humanPortal = new THREE.Mesh(
         new THREE.TorusGeometry(1.35, 0.045, 16, 72),
-        new THREE.MeshStandardMaterial({ color: 0x14b87a, emissive: 0x14b87a, emissiveIntensity: 0.5 })
+        new THREE.MeshStandardMaterial({ color: 0x14b87a, emissive: 0x14b87a, emissiveIntensity: 0.42 })
       );
-      portal.position.set(0, 1.5, -74);
-      scene.add(portal);
+      humanPortal.position.set(0, 1.5, -74);
+      humanPortal.userData.baseScale = 1;
+      scene.add(humanPortal);
+      const portalGlow = new THREE.PointLight(0x14b87a, 0.35, 8);
+      portalGlow.position.set(0, 1.5, -73);
+      portalGlow.userData.portalLight = true;
+      scene.add(portalGlow);
+      humanPortal.userData.light = portalGlow;
     }
 
-    // Path anchors per room — Scout stands in view, then walks clearly ahead
     const path = ROOMS.map((r) => ({
       cam: new THREE.Vector3(0, 2.15, r.z + 7.6),
       look: new THREE.Vector3(0, 1.35, r.z - 1.0),
       scout: new THREE.Vector3(1.4, 0, r.z + 3.4),
-      scoutLead: new THREE.Vector3(0.35, 0, r.z - 1.8), // walks into the room ahead of camera
+      scoutLead: new THREE.Vector3(0.35, 0, r.z - 1.8),
     }));
 
     function easeInOut(t) {
@@ -444,13 +573,13 @@
         cam: path[i].cam.clone().lerp(path[i + 1].cam, f),
         look: path[i].look.clone().lerp(path[i + 1].look, f),
         scout: path[i].scout.clone().lerp(path[i + 1].scout, f),
-        scoutLead: path[i].scoutLead.clone().lerp(path[i + 1].scoutLead, f),
       };
     }
 
     const followBtn = document.getElementById('follow');
     const prevBtn = document.getElementById('prev');
     const flash = document.getElementById('flash');
+    const speechEl = document.getElementById('speech');
     const chapters = document.getElementById('chapters');
 
     ROOMS.forEach((r, i) => {
@@ -462,7 +591,14 @@
     });
 
     function enterWorld() {
-      document.getElementById('gate').hidden = true;
+      const gate = document.getElementById('gate');
+      if (!gate.hidden) {
+        gate.classList.add('is-leaving');
+        setTimeout(() => {
+          gate.hidden = true;
+          gate.classList.remove('is-leaving');
+        }, reduced ? 0 : 380);
+      }
       running = true;
     }
 
@@ -471,10 +607,9 @@
       document.getElementById('roomLabel').textContent = r.label;
       document.getElementById('roomTitle').textContent = r.title;
       document.getElementById('roomBody').textContent = r.body;
-      document.getElementById('scoutLine').textContent =
-        transitioning && phase === 'scout-lead'
-          ? 'This way — keep up with me.'
-          : r.scout;
+      const leading = transitioning && phase === 'scout-lead';
+      document.getElementById('scoutLine').textContent = leading ? 'This way — keep up with me.' : r.scout;
+      speechEl.classList.toggle('leading', leading);
       document.getElementById('progress').style.width = `${(room / lastRoom) * 100}%`;
       [...chapters.children].forEach((el, i) => {
         if (i === room) el.setAttribute('aria-current', 'true');
@@ -490,10 +625,24 @@
       setTimeout(() => flash.classList.remove('on'), 280);
     }
 
+    function triggerRoomBeat(idx) {
+      beatT = 0;
+      beatActive = true;
+      archivist.visible = idx === 2;
+      auditor.visible = idx === 5;
+      if (idx === 1) riskPulse = 1;
+      if (idx === 3) stations.forEach((s, i) => { s.userData.lit = false; s.userData.lightAt = 0.15 + i * 0.28; });
+      if (idx === 4) approvedCards.forEach((c, i) => { c.userData.lift = 0; c.userData.liftDelay = i * 0.12; });
+      if (idx === 6 && humanPortal) {
+        humanPortal.scale.setScalar(1);
+        humanPortal.userData.open = 0;
+      }
+    }
+
     function goToRoom(next, instant = false) {
       enterWorld();
       const dest = ((next % ROOMS.length) + ROOMS.length) % ROOMS.length;
-      if (dest === room && !transitioning) {
+      if (dest === room && !transitioning && !instant) {
         updateHud();
         return;
       }
@@ -505,6 +654,7 @@
         phase = 'idle';
         targetYaw = 0;
         targetPitch = 0;
+        triggerRoomBeat(room);
         pulseFlash();
         updateHud();
         return;
@@ -534,35 +684,22 @@
       goToRoom(room - 1, false);
     }
 
-    followBtn.addEventListener('click', (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      followScout();
-    });
-    prevBtn.addEventListener('click', (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      goBack();
-    });
+    followBtn.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); followScout(); });
+    prevBtn.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); goBack(); });
     document.getElementById('enter').addEventListener('click', (e) => {
       e.preventDefault();
       enterWorld();
+      triggerRoomBeat(0);
       updateHud();
     });
 
-    // Wheel nudges discrete rooms when mostly idle
     let wheelAcc = 0;
     renderer.domElement.addEventListener('wheel', (e) => {
       e.preventDefault();
       if (!running || transitioning) return;
       wheelAcc += e.deltaY;
-      if (wheelAcc > 80) {
-        wheelAcc = 0;
-        followScout();
-      } else if (wheelAcc < -80) {
-        wheelAcc = 0;
-        goBack();
-      }
+      if (wheelAcc > 80) { wheelAcc = 0; followScout(); }
+      else if (wheelAcc < -80) { wheelAcc = 0; goBack(); }
     }, { passive: false });
 
     renderer.domElement.addEventListener('pointerdown', (e) => {
@@ -587,14 +724,8 @@
     renderer.domElement.addEventListener('pointercancel', endDrag);
 
     addEventListener('keydown', (e) => {
-      if (e.key === 'ArrowDown' || e.key === ' ') {
-        e.preventDefault();
-        followScout();
-      }
-      if (e.key === 'ArrowUp') {
-        e.preventDefault();
-        goBack();
-      }
+      if (e.key === 'ArrowDown' || e.key === ' ') { e.preventDefault(); followScout(); }
+      if (e.key === 'ArrowUp') { e.preventDefault(); goBack(); }
       if (e.key >= '1' && e.key <= '7') goToRoom(Number(e.key) - 1, true);
     });
 
@@ -602,22 +733,116 @@
       if (e.data === 'pp-pause') running = false;
       if (e.data === 'pp-resume' && document.getElementById('gate').hidden) running = true;
       if (e.data === 'pp-follow') followScout();
-      if (e.data && e.data.type === 'pp-goto' && Number.isFinite(e.data.room)) {
-        goToRoom(e.data.room, true);
-      }
+      if (e.data && e.data.type === 'pp-goto' && Number.isFinite(e.data.room)) goToRoom(e.data.room, true);
     });
 
-    // Debug + parent control surface
     window.__pp = {
       follow: followScout,
       back: goBack,
       goto: (i) => goToRoom(i, true),
-      state: () => ({ room, camT, scoutT, phase, transitioning, running }),
+      state: () => ({ room, camT, scoutT, phase, transitioning, running, beatActive }),
     };
 
     const clock = new THREE.Clock();
     const scoutPos = new THREE.Vector3().copy(path[0].scout);
     const tmpLook = new THREE.Vector3();
+
+    function animateFigures(dt, t) {
+      const walking = phase === 'scout-lead';
+      const walk = walking ? Math.sin(t * 12) : 0;
+      scoutParts.legL.rotation.x = walking ? walk * 0.55 : Math.sin(t * 2) * 0.04;
+      scoutParts.legR.rotation.x = walking ? -walk * 0.55 : Math.sin(t * 2 + 1) * 0.04;
+      scoutParts.armL.rotation.x = walking ? -walk * 0.4 : 0;
+      scoutParts.armR.rotation.z = walking
+        ? -0.25 + Math.sin(t * 10) * 0.2
+        : -0.35 + Math.sin(t * 5) * 0.45;
+      scoutParts.hips.position.y = 0.55 + (walking ? Math.abs(Math.sin(t * 12)) * 0.04 : Math.sin(t * 3.2) * 0.02);
+      scoutParts.tip.position.y = 1.33 + Math.sin(t * 4) * 0.03;
+      scoutParts.visor.material.emissiveIntensity = 0.4 + Math.sin(t * 3) * 0.12;
+
+      if (archivist.visible) {
+        archivistParts.armR.rotation.z = -0.2 + Math.sin(t * 2.2) * 0.15;
+        archivist.rotation.y = Math.sin(t * 0.8) * 0.12 - 0.4;
+        archivistParts.hips.position.y = 0.55 * 0.92 + Math.sin(t * 2.5) * 0.02;
+      }
+      if (auditor.visible) {
+        auditorParts.armR.rotation.z = -0.55 + Math.sin(t * 1.8) * 0.08;
+        auditor.rotation.y = Math.PI + Math.sin(t * 0.6) * 0.08;
+        auditorParts.visor.material.emissiveIntensity = 0.5 + Math.sin(t * 4) * 0.2;
+      }
+    }
+
+    function animateBeats(dt, t) {
+      if (!beatActive && room === 0) {
+        welcomeRing.rotation.z = t * 0.15;
+        welcomeRing.material.emissiveIntensity = 0.35 + Math.sin(t * 2) * 0.08;
+      }
+      if (beatActive) beatT += dt;
+
+      // Welcome ring breathe on enter
+      if (room === 0) {
+        welcomeRing.scale.setScalar(1 + Math.sin(t * 1.8) * 0.03);
+        welcomeRing.material.emissiveIntensity = 0.38 + Math.sin(t * 2.4) * 0.1;
+      }
+
+      // Problem — red pulse / crack lean
+      if (riskCard && (room === 1 || riskPulse > 0)) {
+        riskPulse = Math.max(0, riskPulse - dt * 0.35);
+        const p = room === 1 ? 0.55 + Math.sin(t * 5) * 0.35 : riskPulse;
+        riskCard.rotation.z = Math.sin(t * 6) * 0.04 * p;
+        riskCard.children[1].material.emissiveIntensity = 0.25 + p * 0.55;
+        riskCard.position.y = riskCard.userData.baseY + Math.sin(t * 7) * 0.03 * p;
+      }
+
+      // Pipeline stations light in sequence
+      if (room === 3) {
+        stations.forEach((s) => {
+          const on = beatT >= (s.userData.lightAt || 0);
+          s.userData.lit = on;
+          const target = on ? 0.65 : s.userData.baseEmissive;
+          s.children[1].material.emissiveIntensity += (target - s.children[1].material.emissiveIntensity) * Math.min(1, dt * 6);
+          s.position.y = 1.4 + (on ? Math.sin(t * 2 + s.userData.float) * 0.06 : 0);
+        });
+      }
+
+      // Approved cards lift
+      if (room === 4) {
+        approvedCards.forEach((c) => {
+          const local = Math.max(0, beatT - (c.userData.liftDelay || 0));
+          const lift = Math.min(1, local / 0.45);
+          c.userData.lift = lift;
+          c.position.y = c.userData.baseY + easeInOut(lift) * 0.35 + Math.sin(t * 0.9 + c.userData.float) * 0.05;
+        });
+      }
+
+      // Held barrier shimmer
+      if (room === 5) {
+        barrierPosts.forEach((p, i) => {
+          if (p.material) {
+            p.material.emissiveIntensity = 0.28 + Math.sin(t * 3 + i) * 0.12;
+            if (p.userData.barrier) p.material.opacity = 0.7 + Math.sin(t * 4) * 0.15;
+          }
+        });
+      }
+
+      // Human portal opens downward cue
+      if (room === 6 && humanPortal) {
+        const open = Math.min(1, beatT / 0.9);
+        humanPortal.userData.open = open;
+        humanPortal.scale.setScalar(1 + open * 0.35);
+        humanPortal.rotation.x = open * 0.55;
+        humanPortal.material.emissiveIntensity = 0.4 + open * 0.35 + Math.sin(t * 3) * 0.08;
+        if (humanPortal.userData.light) {
+          humanPortal.userData.light.intensity = 0.35 + open * 1.1;
+        }
+      }
+
+      scene.traverse((obj) => {
+        if (obj.userData.float != null && room !== 3 && room !== 4) {
+          obj.position.y = 1.4 + Math.sin(t * 0.9 + obj.userData.float) * 0.06;
+        }
+      });
+    }
 
     function animate() {
       requestAnimationFrame(animate);
@@ -627,17 +852,11 @@
       if (transitioning) {
         phaseT += dt;
         if (phase === 'scout-lead') {
-          // Scout walks into the next room first (~0.7s)
           const u = Math.min(1, phaseT / 0.7);
           scoutT = THREE.MathUtils.lerp(fromRoom, toRoom, easeInOut(u));
-          // Camera holds, then eases slightly forward
           camT = THREE.MathUtils.lerp(fromRoom, fromRoom + (toRoom - fromRoom) * 0.12, easeInOut(Math.min(1, u * 1.2)));
-          if (u >= 1) {
-            phase = 'cam-chase';
-            phaseT = 0;
-          }
+          if (u >= 1) { phase = 'cam-chase'; phaseT = 0; updateHud(); }
         } else if (phase === 'cam-chase') {
-          // Camera chases Scout (~0.85s)
           const u = Math.min(1, phaseT / 0.85);
           camT = THREE.MathUtils.lerp(fromRoom + (toRoom - fromRoom) * 0.12, toRoom, easeInOut(u));
           scoutT = toRoom;
@@ -647,6 +866,7 @@
             scoutT = toRoom;
             transitioning = false;
             phase = 'idle';
+            triggerRoomBeat(room);
             updateHud();
           }
         }
@@ -670,15 +890,13 @@
       camera.position.y += pitch * 2.1;
       camera.position.z += Math.cos(yaw) * 0.35 - 0.2;
 
-      // During lead, look toward Scout so you see them walk away
       if (phase === 'scout-lead') {
-        tmpLook.copy(scoutPos).add(new THREE.Vector3(0, 1.2, 0));
+        tmpLook.copy(scoutPos).add(new THREE.Vector3(0, 1.15, 0));
         camera.lookAt(tmpLook);
       } else {
         camera.lookAt(camSample.look);
       }
 
-      // Scout position: idle uses room scout spot; during lead use scoutLead of destination blend
       let desired;
       if (phase === 'scout-lead') {
         const leadU = Math.min(1, phaseT / 0.7);
@@ -692,19 +910,17 @@
 
       scoutPos.lerp(desired, Math.min(1, dt * 10));
       scout.position.copy(scoutPos);
-      scout.position.y = Math.sin(t * 3.2) * 0.04 + (phase === 'scout-lead' ? Math.sin(t * 14) * 0.03 : 0);
-
       const faceZ = phase === 'scout-lead' ? scoutPos.z - 4 : camSample.look.z;
-      scout.lookAt(scout.position.x * 0.2, 1.2, faceZ);
-      armR.rotation.z = -0.35 + Math.sin(t * (phase === 'scout-lead' ? 10 : 5)) * 0.45;
-      tip.position.y = 1.88 + Math.sin(t * 4) * 0.03;
-      visor.material.emissiveIntensity = 0.45 + Math.sin(t * 3) * 0.15;
+      scout.lookAt(scout.position.x * 0.15, 1.1, faceZ);
 
-      scene.traverse((obj) => {
-        if (obj.userData.float != null) {
-          obj.position.y = 1.4 + Math.sin(t * 0.9 + obj.userData.float) * 0.08;
-        }
-      });
+      // Point down toward ledger in human room
+      if (room === 6 && !transitioning) {
+        scoutParts.armR.rotation.x = 0.85 + Math.sin(t * 2) * 0.08;
+        scoutParts.armR.rotation.z = -0.15;
+      }
+
+      animateFigures(dt, t);
+      animateBeats(dt, t);
 
       if (!document.hidden) renderer.render(scene, camera);
     }
