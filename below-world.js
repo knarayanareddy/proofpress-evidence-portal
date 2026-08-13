@@ -35,7 +35,7 @@ var s=document.createElement('style');s.textContent="\n:root{--pp-ease:cubic-bez
       ctx.fillStyle='#0b1020'; ctx.fillRect(0,0,52,64);
       var bob=Math.sin(t*0.004)*2;
       ctx.fillStyle='#1a2744';
-      ctx.beginPath(); ctx.roundRect(16,18+bob,20,22,8); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(24,18+bob); ctx.arcTo(36,18+bob,36,40+bob,8); ctx.arcTo(36,40+bob,16,40+bob,8); ctx.arcTo(16,40+bob,16,18+bob,8); ctx.arcTo(16,18+bob,36,18+bob,8); ctx.closePath(); ctx.fill();
       ctx.beginPath(); ctx.arc(26,14+bob,9,0,Math.PI*2); ctx.fill();
       ctx.fillStyle=accent; ctx.fillRect(18,12+bob,16,4);
       ctx.fillStyle=mint; ctx.beginPath(); ctx.arc(32,4+bob,3,0,Math.PI*2); ctx.fill();
