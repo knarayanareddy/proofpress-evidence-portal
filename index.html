@@ -31,6 +31,7 @@
     .progress {
       position: absolute; left: 0; top: 0; height: 3px; width: 0%; z-index: 7;
       background: linear-gradient(90deg, #2457e6, #14b87a, #f0a202);
+      transition: width .35s ease;
     }
     .hud {
       position: absolute; left: 0; right: 0; bottom: 0; z-index: 6;
@@ -61,6 +62,7 @@
       background: #2457e6; border: 0; padding: 12px 16px; cursor: pointer;
       box-shadow: 0 10px 24px rgba(36,87,230,.3);
     }
+    .actions button:disabled { opacity: .55; cursor: wait; }
     .actions .ghost {
       background: transparent; border: 1px solid #4f7cff; color: #c9d2e3;
       box-shadow: none;
@@ -70,7 +72,7 @@
       display: grid; place-items: center;
       background: radial-gradient(ellipse at center, rgba(36,87,230,.18), rgba(7,11,22,.82));
     }
-    .gate[hidden] { display: none; }
+    .gate[hidden] { display: none !important; }
     .gate-card {
       text-align: center; max-width: 420px; padding: 28px 24px;
       border: 1px solid #2a3348; background: rgba(11,16,32,.92);
@@ -81,6 +83,12 @@
       font: 600 15px system-ui, sans-serif; color: #fff; background: #2457e6;
       border: 0; padding: 14px 22px; cursor: pointer;
     }
+    .flash {
+      position: absolute; inset: 0; z-index: 5; pointer-events: none;
+      background: radial-gradient(ellipse at 50% 40%, rgba(79,124,255,.28), transparent 55%);
+      opacity: 0; transition: opacity .25s ease;
+    }
+    .flash.on { opacity: 1; }
     @media (max-width: 640px) {
       .hud strong { font-size: 18px; }
       .speech { max-width: 100%; }
@@ -89,9 +97,10 @@
 </head>
 <body>
   <div class="progress" id="progress"></div>
+  <div class="flash" id="flash" aria-hidden="true"></div>
   <div class="topbar">
     <div class="brand">ProofPress</div>
-    <div class="hint">Drag to look · Scroll / Follow Scout</div>
+    <div class="hint">Drag to look · Follow Scout / scroll</div>
   </div>
   <nav class="chapters" id="chapters" aria-label="Chapters"></nav>
   <div class="hud">
@@ -186,18 +195,25 @@
       { label: 'APPROVED · Policy', claim: 'Every proposed change is visible for human review before it goes live.', color: '#14b87a' },
     ];
 
-    let progress = 0;
-    let targetProgress = 0;
+    const lastRoom = ROOMS.length - 1;
+    const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    let room = 0;
+    let camT = 0;          // 0..lastRoom continuous camera path
+    let scoutT = 0;        // Scout leads on the path
     let dragging = false;
     let lastX = 0, lastY = 0;
     let yaw = 0, pitch = 0, targetYaw = 0, targetPitch = 0;
     let running = false;
-    const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
-    const nRooms = ROOMS.length - 1;
+    let transitioning = false;
+    let phase = 'idle'; // idle | scout-lead | cam-chase
+    let phaseT = 0;
+    let fromRoom = 0;
+    let toRoom = 0;
 
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x070b16);
-    scene.fog = new THREE.Fog(0x070b16, 12, 42);
+    scene.fog = new THREE.Fog(0x070b16, 14, 48);
 
     const camera = new THREE.PerspectiveCamera(42, innerWidth / innerHeight, 0.1, 120);
     const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
@@ -281,7 +297,6 @@
       return g;
     }
 
-    // ---- Scout character (simple geometric guide) ----
     function createScout() {
       const scout = new THREE.Group();
       const bodyMat = new THREE.MeshStandardMaterial({ color: 0x1a2744, metalness: 0.35, roughness: 0.45 });
@@ -326,7 +341,6 @@
     }
     const { scout, armR, tip, visor } = createScout();
 
-    // Rooms
     addFloor(0);
     {
       const tex = makeTextPanel('PROOFPRESS', 'Approved evidence in. Reviewable campaign page out.', '#2457e6');
@@ -410,69 +424,145 @@
       scene.add(portal);
     }
 
+    // Path anchors per room — Scout stands in view, then walks clearly ahead
     const path = ROOMS.map((r) => ({
-      cam: new THREE.Vector3(0, 2.2, r.z + 7.4),
-      look: new THREE.Vector3(0, 1.35, r.z - 1.2),
-      scout: new THREE.Vector3(1.55, 0, r.z + 2.2),
+      cam: new THREE.Vector3(0, 2.15, r.z + 7.6),
+      look: new THREE.Vector3(0, 1.35, r.z - 1.0),
+      scout: new THREE.Vector3(1.4, 0, r.z + 3.4),
+      scoutLead: new THREE.Vector3(0.35, 0, r.z - 1.8), // walks into the room ahead of camera
     }));
 
-    function setProgress(p) {
-      targetProgress = THREE.MathUtils.clamp(p, 0, 1);
+    function easeInOut(t) {
+      return t * t * (3 - 2 * t);
     }
-    function roomIndex(p) {
-      return Math.round(p * nRooms);
-    }
-    function sample(p) {
-      const f = p * nRooms;
-      const i = Math.min(Math.floor(f), nRooms - 1);
-      const t = f - i;
-      const e = t * t * (3 - 2 * t);
+
+    function sampleAt(t) {
+      const clamped = THREE.MathUtils.clamp(t, 0, lastRoom);
+      const i = Math.min(Math.floor(clamped), lastRoom - 1);
+      const f = easeInOut(clamped - i);
       return {
-        cam: path[i].cam.clone().lerp(path[i + 1].cam, e),
-        look: path[i].look.clone().lerp(path[i + 1].look, e),
-        scout: path[i].scout.clone().lerp(path[i + 1].scout, e),
+        cam: path[i].cam.clone().lerp(path[i + 1].cam, f),
+        look: path[i].look.clone().lerp(path[i + 1].look, f),
+        scout: path[i].scout.clone().lerp(path[i + 1].scout, f),
+        scoutLead: path[i].scoutLead.clone().lerp(path[i + 1].scoutLead, f),
       };
     }
 
+    const followBtn = document.getElementById('follow');
+    const prevBtn = document.getElementById('prev');
+    const flash = document.getElementById('flash');
     const chapters = document.getElementById('chapters');
+
     ROOMS.forEach((r, i) => {
       const b = document.createElement('button');
       b.type = 'button';
       b.title = r.title;
-      b.addEventListener('click', () => setProgress(i / nRooms));
+      b.addEventListener('click', () => goToRoom(i, true));
       chapters.appendChild(b);
     });
 
-    function updateHud() {
-      const idx = roomIndex(progress);
-      const room = ROOMS[idx];
-      document.getElementById('roomLabel').textContent = room.label;
-      document.getElementById('roomTitle').textContent = room.title;
-      document.getElementById('roomBody').textContent = room.body;
-      document.getElementById('scoutLine').textContent = room.scout;
-      document.getElementById('progress').style.width = `${progress * 100}%`;
-      [...chapters.children].forEach((el, i) => el.setAttribute('aria-current', i === idx ? 'true' : 'false'));
-      document.getElementById('follow').textContent = idx >= nRooms ? 'Replay journey' : 'Follow Scout →';
-    }
-
-    document.getElementById('follow').addEventListener('click', () => {
-      const idx = roomIndex(targetProgress);
-      if (idx >= nRooms) setProgress(0);
-      else setProgress((idx + 1) / nRooms);
-    });
-    document.getElementById('prev').addEventListener('click', () => {
-      const idx = roomIndex(targetProgress);
-      setProgress(Math.max(0, (idx - 1) / nRooms));
-    });
-    document.getElementById('enter').addEventListener('click', () => {
+    function enterWorld() {
       document.getElementById('gate').hidden = true;
       running = true;
+    }
+
+    function updateHud() {
+      const r = ROOMS[room];
+      document.getElementById('roomLabel').textContent = r.label;
+      document.getElementById('roomTitle').textContent = r.title;
+      document.getElementById('roomBody').textContent = r.body;
+      document.getElementById('scoutLine').textContent =
+        transitioning && phase === 'scout-lead'
+          ? 'This way — keep up with me.'
+          : r.scout;
+      document.getElementById('progress').style.width = `${(room / lastRoom) * 100}%`;
+      [...chapters.children].forEach((el, i) => {
+        if (i === room) el.setAttribute('aria-current', 'true');
+        else el.removeAttribute('aria-current');
+      });
+      followBtn.textContent = room >= lastRoom && !transitioning ? 'Replay journey' : 'Follow Scout →';
+      followBtn.disabled = transitioning;
+      prevBtn.disabled = transitioning || room <= 0;
+    }
+
+    function pulseFlash() {
+      flash.classList.add('on');
+      setTimeout(() => flash.classList.remove('on'), 280);
+    }
+
+    function goToRoom(next, instant = false) {
+      enterWorld();
+      const dest = ((next % ROOMS.length) + ROOMS.length) % ROOMS.length;
+      if (dest === room && !transitioning) {
+        updateHud();
+        return;
+      }
+      if (reduced || instant) {
+        room = dest;
+        camT = dest;
+        scoutT = dest;
+        transitioning = false;
+        phase = 'idle';
+        targetYaw = 0;
+        targetPitch = 0;
+        pulseFlash();
+        updateHud();
+        return;
+      }
+      fromRoom = room;
+      toRoom = dest;
+      phaseT = 0;
+      phase = 'scout-lead';
+      transitioning = true;
+      pulseFlash();
+      updateHud();
+    }
+
+    function followScout() {
+      enterWorld();
+      if (transitioning) return;
+      if (room >= lastRoom) {
+        goToRoom(0, false);
+        return;
+      }
+      goToRoom(room + 1, false);
+    }
+
+    function goBack() {
+      enterWorld();
+      if (transitioning || room <= 0) return;
+      goToRoom(room - 1, false);
+    }
+
+    followBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      followScout();
+    });
+    prevBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      goBack();
+    });
+    document.getElementById('enter').addEventListener('click', (e) => {
+      e.preventDefault();
+      enterWorld();
+      updateHud();
     });
 
+    // Wheel nudges discrete rooms when mostly idle
+    let wheelAcc = 0;
     renderer.domElement.addEventListener('wheel', (e) => {
       e.preventDefault();
-      if (!running) return;
-      setProgress(targetProgress + e.deltaY * 0.0005);
+      if (!running || transitioning) return;
+      wheelAcc += e.deltaY;
+      if (wheelAcc > 80) {
+        wheelAcc = 0;
+        followScout();
+      } else if (wheelAcc < -80) {
+        wheelAcc = 0;
+        goBack();
+      }
     }, { passive: false });
 
     renderer.domElement.addEventListener('pointerdown', (e) => {
@@ -487,9 +577,6 @@
       targetYaw = THREE.MathUtils.clamp(targetYaw - (e.clientX - lastX) * 0.0032, -0.65, 0.65);
       targetPitch = THREE.MathUtils.clamp(targetPitch - (e.clientY - lastY) * 0.0022, -0.32, 0.32);
       lastX = e.clientX; lastY = e.clientY;
-      if (Math.abs(e.movementY) > Math.abs(e.movementX) * 1.5) {
-        setProgress(targetProgress + Math.sign(e.movementY) * 0.012);
-      }
     });
     function endDrag(e) {
       dragging = false;
@@ -500,40 +587,116 @@
     renderer.domElement.addEventListener('pointercancel', endDrag);
 
     addEventListener('keydown', (e) => {
-      if (!running) return;
-      if (e.key === 'ArrowDown' || e.key === ' ') { e.preventDefault(); document.getElementById('follow').click(); }
-      if (e.key === 'ArrowUp') document.getElementById('prev').click();
-      if (e.key >= '1' && e.key <= '7') setProgress((Number(e.key) - 1) / nRooms);
+      if (e.key === 'ArrowDown' || e.key === ' ') {
+        e.preventDefault();
+        followScout();
+      }
+      if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        goBack();
+      }
+      if (e.key >= '1' && e.key <= '7') goToRoom(Number(e.key) - 1, true);
     });
 
     window.addEventListener('message', (e) => {
       if (e.data === 'pp-pause') running = false;
       if (e.data === 'pp-resume' && document.getElementById('gate').hidden) running = true;
+      if (e.data === 'pp-follow') followScout();
+      if (e.data && e.data.type === 'pp-goto' && Number.isFinite(e.data.room)) {
+        goToRoom(e.data.room, true);
+      }
     });
 
+    // Debug + parent control surface
+    window.__pp = {
+      follow: followScout,
+      back: goBack,
+      goto: (i) => goToRoom(i, true),
+      state: () => ({ room, camT, scoutT, phase, transitioning, running }),
+    };
+
     const clock = new THREE.Clock();
-    const scoutPos = new THREE.Vector3();
+    const scoutPos = new THREE.Vector3().copy(path[0].scout);
+    const tmpLook = new THREE.Vector3();
+
     function animate() {
       requestAnimationFrame(animate);
-      const dt = Math.min(clock.getDelta(), 0.05);
+      const dt = Math.min(Math.max(clock.getDelta(), 0.001), 0.05);
       const t = clock.elapsedTime;
-      progress += (targetProgress - progress) * (reduced ? 1 : 1 - Math.pow(0.0009, dt));
-      yaw += (targetYaw - yaw) * (1 - Math.pow(0.0008, dt));
-      pitch += (targetPitch - pitch) * (1 - Math.pow(0.0008, dt));
-      if (!dragging) { targetYaw *= 0.985; targetPitch *= 0.985; }
 
-      const s = sample(progress);
-      camera.position.copy(s.cam);
-      camera.position.add(new THREE.Vector3(Math.sin(yaw) * 1.7, pitch * 2.1, Math.cos(yaw) * 0.5));
-      camera.lookAt(s.look);
+      if (transitioning) {
+        phaseT += dt;
+        if (phase === 'scout-lead') {
+          // Scout walks into the next room first (~0.7s)
+          const u = Math.min(1, phaseT / 0.7);
+          scoutT = THREE.MathUtils.lerp(fromRoom, toRoom, easeInOut(u));
+          // Camera holds, then eases slightly forward
+          camT = THREE.MathUtils.lerp(fromRoom, fromRoom + (toRoom - fromRoom) * 0.12, easeInOut(Math.min(1, u * 1.2)));
+          if (u >= 1) {
+            phase = 'cam-chase';
+            phaseT = 0;
+          }
+        } else if (phase === 'cam-chase') {
+          // Camera chases Scout (~0.85s)
+          const u = Math.min(1, phaseT / 0.85);
+          camT = THREE.MathUtils.lerp(fromRoom + (toRoom - fromRoom) * 0.12, toRoom, easeInOut(u));
+          scoutT = toRoom;
+          if (u >= 1) {
+            room = toRoom;
+            camT = toRoom;
+            scoutT = toRoom;
+            transitioning = false;
+            phase = 'idle';
+            updateHud();
+          }
+        }
+      } else {
+        camT += (room - camT) * Math.min(1, dt * 8);
+        scoutT += (room - scoutT) * Math.min(1, dt * 8);
+      }
 
-      // Scout leads slightly ahead of camera progress
-      const lead = sample(Math.min(1, progress + 0.04));
-      scoutPos.lerp(lead.scout, 1 - Math.pow(0.02, dt));
+      yaw += (targetYaw - yaw) * Math.min(1, dt * 10);
+      pitch += (targetPitch - pitch) * Math.min(1, dt * 10);
+      if (!dragging) {
+        targetYaw *= Math.pow(0.92, dt * 60);
+        targetPitch *= Math.pow(0.92, dt * 60);
+      }
+
+      const camSample = sampleAt(camT);
+      const scoutSample = sampleAt(scoutT);
+
+      camera.position.copy(camSample.cam);
+      camera.position.x += Math.sin(yaw) * 1.7;
+      camera.position.y += pitch * 2.1;
+      camera.position.z += Math.cos(yaw) * 0.35 - 0.2;
+
+      // During lead, look toward Scout so you see them walk away
+      if (phase === 'scout-lead') {
+        tmpLook.copy(scoutPos).add(new THREE.Vector3(0, 1.2, 0));
+        camera.lookAt(tmpLook);
+      } else {
+        camera.lookAt(camSample.look);
+      }
+
+      // Scout position: idle uses room scout spot; during lead use scoutLead of destination blend
+      let desired;
+      if (phase === 'scout-lead') {
+        const leadU = Math.min(1, phaseT / 0.7);
+        desired = path[fromRoom].scout.clone().lerp(path[toRoom].scoutLead, easeInOut(leadU));
+      } else if (phase === 'cam-chase') {
+        const leadU = Math.min(1, phaseT / 0.85);
+        desired = path[toRoom].scoutLead.clone().lerp(path[toRoom].scout, easeInOut(leadU));
+      } else {
+        desired = scoutSample.scout.clone();
+      }
+
+      scoutPos.lerp(desired, Math.min(1, dt * 10));
       scout.position.copy(scoutPos);
-      scout.position.y = Math.sin(t * 3.2) * 0.04;
-      scout.lookAt(s.look.x, 1.2, s.look.z);
-      armR.rotation.z = -0.35 + Math.sin(t * 5) * 0.45; // beckon
+      scout.position.y = Math.sin(t * 3.2) * 0.04 + (phase === 'scout-lead' ? Math.sin(t * 14) * 0.03 : 0);
+
+      const faceZ = phase === 'scout-lead' ? scoutPos.z - 4 : camSample.look.z;
+      scout.lookAt(scout.position.x * 0.2, 1.2, faceZ);
+      armR.rotation.z = -0.35 + Math.sin(t * (phase === 'scout-lead' ? 10 : 5)) * 0.45;
       tip.position.y = 1.88 + Math.sin(t * 4) * 0.03;
       visor.material.emissiveIntensity = 0.45 + Math.sin(t * 3) * 0.15;
 
@@ -543,11 +706,11 @@
         }
       });
 
-      updateHud();
       if (!document.hidden) renderer.render(scene, camera);
     }
-    animate();
+
     updateHud();
+    animate();
 
     addEventListener('resize', () => {
       camera.aspect = innerWidth / innerHeight;
