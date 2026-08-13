@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>ProofPress — Guided Evidence World</title>
+  <title>ProofPress — Guided Evidence World · v8 stations</title>
+  <!-- BUILD_STAMP: v8-stations-pedestals-arches -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet" />
@@ -424,41 +425,74 @@
       return g;
     }
 
+    function makeBigNum(num, color) {
+      const canvas = document.createElement('canvas');
+      canvas.width = 256; canvas.height = 256;
+      const ctx = canvas.getContext('2d');
+      ctx.clearRect(0, 0, 256, 256);
+      ctx.fillStyle = '#' + color.toString(16).padStart(6, '0');
+      ctx.font = '700 140px Fraunces, Georgia, serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.shadowColor = '#' + color.toString(16).padStart(6, '0');
+      ctx.shadowBlur = 28;
+      ctx.fillText(num, 128, 128);
+      const tex = new THREE.CanvasTexture(canvas);
+      const mesh = new THREE.Mesh(
+        new THREE.PlaneGeometry(1.1, 1.1),
+        new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false })
+      );
+      return mesh;
+    }
+
     function makeStation({ num, title, body, color, x, z }) {
       const g = new THREE.Group();
       const hex = '#' + color.toString(16).padStart(6, '0');
-      const tex = makeTextPanel(title, body, hex, { badge: num, footer: 'Pipeline station' });
-      const card = makeCard(tex, color, 2.45, 1.75);
-      card.position.y = 1.55;
+      const tex = makeTextPanel(title, body, hex, { badge: num, footer: 'Rules → Build → Review' });
+      const card = makeCard(tex, color, 2.7, 1.95);
+      card.position.set(0, 1.85, 0);
+      card.rotation.y = x < 0 ? 0.18 : x > 0 ? -0.18 : 0;
       g.add(card);
 
+      const numMesh = makeBigNum(num, color);
+      numMesh.position.set(0, 3.15, 0.2);
+      g.add(numMesh);
+
       const plinth = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.85, 1.05, 0.18, 32),
-        new THREE.MeshStandardMaterial({ color: 0x121a2c, metalness: 0.45, roughness: 0.35 })
+        new THREE.CylinderGeometry(1.05, 1.25, 0.28, 40),
+        new THREE.MeshStandardMaterial({ color: 0x0c1324, metalness: 0.55, roughness: 0.28 })
       );
-      plinth.position.y = 0.1;
+      plinth.position.y = 0.14;
       g.add(plinth);
 
+      const plinthTop = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.92, 0.92, 0.06, 40),
+        new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: 0.45, metalness: 0.3, roughness: 0.35 })
+      );
+      plinthTop.position.y = 0.3;
+      g.add(plinthTop);
+
       const halo = new THREE.Mesh(
-        new THREE.RingGeometry(0.95, 1.2, 48),
+        new THREE.RingGeometry(1.15, 1.55, 64),
         new THREE.MeshStandardMaterial({
-          color, emissive: color, emissiveIntensity: 0.2,
-          side: THREE.DoubleSide, transparent: true, opacity: 0.7,
+          color, emissive: color, emissiveIntensity: 0.45,
+          side: THREE.DoubleSide, transparent: true, opacity: 0.85,
         })
       );
       halo.rotation.x = -Math.PI / 2;
-      halo.position.y = 0.21;
+      halo.position.y = 0.34;
       g.add(halo);
 
-      const pillar = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.04, 0.04, 1.2, 12),
-        new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: 0.25 })
+      const arch = new THREE.Mesh(
+        new THREE.TorusGeometry(1.35, 0.045, 12, 48, Math.PI),
+        new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: 0.5 })
       );
-      pillar.position.set(-1.45, 0.7, 0);
-      g.add(pillar);
+      arch.position.set(0, 1.05, -0.55);
+      arch.rotation.z = Math.PI;
+      g.add(arch);
 
-      const lamp = new THREE.PointLight(color, 0.25, 5);
-      lamp.position.set(0, 2.2, 0.4);
+      const lamp = new THREE.PointLight(color, 0.9, 7);
+      lamp.position.set(0, 2.6, 0.6);
       g.add(lamp);
 
       g.position.set(x, 0, z);
@@ -466,7 +500,9 @@
       g.userData.halo = halo;
       g.userData.lamp = lamp;
       g.userData.card = card;
-      g.userData.baseEmissive = 0.2;
+      g.userData.numMesh = numMesh;
+      g.userData.plinthTop = plinthTop;
+      g.userData.baseEmissive = 0.35;
       g.userData.lit = false;
       return g;
     }
@@ -577,23 +613,38 @@
     scene.add(archivist);
 
     addFloor(-36, 0x14b87a);
-    // Connecting path between stations
+    // Glowing connector between stations
     {
       const path = new THREE.Mesh(
-        new THREE.BoxGeometry(7.2, 0.04, 0.35),
-        new THREE.MeshStandardMaterial({ color: 0x1a2744, metalness: 0.4, roughness: 0.4, emissive: 0x2457e6, emissiveIntensity: 0.12 })
+        new THREE.BoxGeometry(8.2, 0.06, 0.55),
+        new THREE.MeshStandardMaterial({
+          color: 0x152238, metalness: 0.5, roughness: 0.3,
+          emissive: 0x2457e6, emissiveIntensity: 0.35,
+        })
       );
-      path.position.set(0, 0.06, -36);
+      path.position.set(0, 0.08, -36);
       scene.add(path);
+      [-2.6, 0, 2.6].forEach((x, i) => {
+        const node = new THREE.Mesh(
+          new THREE.SphereGeometry(0.12, 16, 16),
+          new THREE.MeshStandardMaterial({
+            color: i === 0 ? 0x2457e6 : i === 1 ? 0x14b87a : 0xf0a202,
+            emissive: i === 0 ? 0x2457e6 : i === 1 ? 0x14b87a : 0xf0a202,
+            emissiveIntensity: 0.7,
+          })
+        );
+        node.position.set(x, 0.22, -36);
+        scene.add(node);
+      });
     }
     [
-      { num: '01', title: 'SET RULES', c: 'Save Agent Instructions before the agent builds.', color: 0x2457e6, x: -3.1 },
+      { num: '01', title: 'SET RULES', c: 'Save Agent Instructions before the agent builds.', color: 0x2457e6, x: -3.2 },
       { num: '02', title: 'BUILD', c: 'Approved CMS + existing design system only.', color: 0x14b87a, x: 0 },
-      { num: '03', title: 'REVIEW', c: 'Human sign-off before anything goes live.', color: 0xf0a202, x: 3.1 },
+      { num: '03', title: 'REVIEW', c: 'Human sign-off before anything goes live.', color: 0xf0a202, x: 3.2 },
     ].forEach((s, i) => {
       const station = makeStation({ num: s.num, title: s.title, body: s.c, color: s.color, x: s.x, z: -36 });
       station.userData.float = i;
-      station.userData.lightAt = 0.12 + i * 0.32;
+      station.userData.lightAt = 0.1 + i * 0.28;
       stations.push(station);
       scene.add(station);
     });
@@ -920,7 +971,14 @@
           }
           if (lamp) lamp.intensity += ((on ? 1.15 : 0.2) - lamp.intensity) * Math.min(1, dt * 4);
           if (s.userData.card) {
-            s.userData.card.position.y = 1.55 + (on ? Math.sin(t * 2 + s.userData.float) * 0.05 : 0);
+            s.userData.card.position.y = 1.85 + (on ? Math.sin(t * 2 + s.userData.float) * 0.06 : 0);
+          }
+          if (s.userData.numMesh) {
+            s.userData.numMesh.position.y = 3.15 + (on ? Math.sin(t * 2.2 + s.userData.float) * 0.05 : 0);
+            s.userData.numMesh.material.opacity = on ? 1 : 0.55;
+          }
+          if (s.userData.plinthTop) {
+            s.userData.plinthTop.material.emissiveIntensity += ((on ? 0.85 : 0.35) - s.userData.plinthTop.material.emissiveIntensity) * Math.min(1, dt * 5);
           }
         });
       }
