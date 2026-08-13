@@ -712,9 +712,9 @@
       humanPortal.userData.light = portalGlow;
     }
 
-    const path = ROOMS.map((r) => ({
-      cam: new THREE.Vector3(0, 2.15, r.z + 7.6),
-      look: new THREE.Vector3(0, 1.35, r.z - 1.0),
+    const path = ROOMS.map((r, i) => ({
+      cam: new THREE.Vector3(0, i === 3 ? 2.65 : 2.15, r.z + (i === 3 ? 8.4 : 7.6)),
+      look: new THREE.Vector3(0, i === 3 ? 1.15 : 1.35, r.z - (i === 3 ? 0.4 : 1.0)),
       scout: new THREE.Vector3(1.4, 0, r.z + 3.4),
       scoutLead: new THREE.Vector3(0.35, 0, r.z - 1.8),
     }));
