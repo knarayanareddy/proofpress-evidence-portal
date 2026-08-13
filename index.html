@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ProofPress Evidence Portal</title>
+  <style>
+    :root { color-scheme: dark; }
+    html, body { margin: 0; height: 100%; overflow: hidden; background: #070b16; font-family: system-ui, -apple-system, sans-serif; }
+    canvas { display: block; width: 100%; height: 100%; }
+    .hud {
+      position: absolute; left: 0; right: 0; bottom: 0;
+      padding: 16px 20px 20px;
+      background: linear-gradient(transparent, rgba(7,11,22,.92));
+      color: #c9d2e3; pointer-events: none;
+    }
+    .hud strong { color: #f4f7ff; font-weight: 600; letter-spacing: .02em; }
+    .hud span { display: block; margin-top: 4px; font-size: 13px; opacity: .85; }
+    .hint {
+      position: absolute; top: 16px; left: 16px;
+      font-size: 11px; letter-spacing: .12em; text-transform: uppercase;
+      color: #a8b0c4; background: rgba(18,26,44,.72);
+      border: 1px solid #2a3348; padding: 8px 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="hint">Drag to look · scroll to move</div>
+  <div class="hud">
+    <strong>Evidence portal</strong>
+    <span>Approved claims ahead. Held claims stay outside the frame.</span>
+  </div>
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+    }
+  }
+  </script>
+  <script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x070b16);
+    scene.fog = new THREE.Fog(0x070b16, 8, 28);
+
+    const camera = new THREE.PerspectiveCamera(45, innerWidth / innerHeight, 0.1, 100);
+    camera.position.set(0, 2.2, 7.5);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+    renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+    renderer.setSize(innerWidth, innerHeight);
+    document.body.prepend(renderer.domElement);
+
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.maxPolarAngle = Math.PI * 0.49;
+    controls.minDistance = 4;
+    controls.maxDistance = 14;
+    controls.target.set(0, 1.2, 0);
+
+    // Soft fill
+    scene.add(new THREE.AmbientLight(0x6a7aaa, 0.55));
+    const key = new THREE.DirectionalLight(0xffffff, 0.85);
+    key.position.set(4, 8, 6);
+    scene.add(key);
+    const accent = new THREE.PointLight(0x2457e6, 1.4, 20);
+    accent.position.set(-2, 2.5, 2);
+    scene.add(accent);
+
+    // Floor grid
+    const grid = new THREE.GridHelper(24, 24, 0x2457e6, 0x1a2438);
+    grid.position.y = 0;
+    grid.material.opacity = 0.45;
+    grid.material.transparent = true;
+    scene.add(grid);
+
+    const floor = new THREE.Mesh(
+      new THREE.CircleGeometry(10, 64),
+      new THREE.MeshStandardMaterial({ color: 0x0b1020, metalness: 0.2, roughness: 0.9 })
+    );
+    floor.rotation.x = -Math.PI / 2;
+    floor.position.y = -0.01;
+    scene.add(floor);
+
+    function makePanel(label, claim, color, x) {
+      const group = new THREE.Group();
+      const frame = new THREE.Mesh(
+        new THREE.BoxGeometry(2.4, 1.6, 0.08),
+        new THREE.MeshStandardMaterial({ color: 0x121a2c, metalness: 0.1, roughness: 0.7 })
+      );
+      group.add(frame);
+      const rim = new THREE.Mesh(
+        new THREE.BoxGeometry(2.42, 1.62, 0.02),
+        new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: 0.35, roughness: 0.4, roughness: 0.35 })
+      );
+      rim.position.z = -0.05;
+      group.add(rim);
+
+      const canvas = document.createElement('canvas');
+      canvas.width = 512; canvas.height = 340;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#121a2c';
+      ctx.fillRect(0, 0, 512, 340);
+      ctx.fillStyle = color;
+      ctx.fillRect(0, 0, 10, 340);
+      ctx.fillStyle = '#a8b0c4';
+      ctx.font = '600 22px system-ui, sans-serif';
+      ctx.fillText(label, 28, 48);
+      ctx.fillStyle = '#f4f7ff';
+      ctx.font = '500 28px Georgia, serif';
+      wrapText(ctx, claim, 28, 110, 450, 36);
+      ctx.fillStyle = '#a8b0c4';
+      ctx.font = '14px system-ui, sans-serif';
+      ctx.fillText('Source: CMS', 28, 300);
+
+      const tex = new THREE.CanvasTexture(canvas);
+      const face = new THREE.Mesh(
+        new THREE.PlaneGeometry(2.2, 1.45),
+        new THREE.MeshBasicMaterial({ map: tex })
+      );
+      face.position.z = 0.05;
+      group.add(face);
+      group.position.set(x, 1.35, 0);
+      return group;
+    }
+
+    function wrapText(ctx, text, x, y, maxWidth, lineHeight) {
+      const words = text.split(' ');
+      let line = '';
+      let yy = y;
+      for (const w of words) {
+        const test = line + w + ' ';
+        if (ctx.measureText(test).width > maxWidth && line) {
+          ctx.fillText(line.trim(), x, yy);
+          line = w + ' ';
+          yy += lineHeight;
+        } else line = test;
+      }
+      ctx.fillText(line.trim(), x, yy);
+    }
+
+    const approved = makePanel('APPROVED', 'Build from approved evidence—not a model guess.', '#14b87a', -2.7);
+    const cms = makePanel('CMS', 'Proof Points filtered to Status = Approved.', '#2457e6', 0);
+    const held = makePanel('HELD', 'Needs approval. Not used as public proof.', '#f0a202', 2.7);
+    held.position.z = -0.4;
+    scene.add(approved, cms, held);
+
+    // Portal arch
+    const portalMat = new THREE.MeshStandardMaterial({
+      color: 0x4f7cff, emissive: 0x2457e6, emissiveIntensity: 0.55, metalness: 0.6, roughness: 0.25
+    });
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(1.55, 0.045, 16, 80), portalMat);
+    ring.position.set(0, 1.55, -3.2);
+    scene.add(ring);
+    const veil = new THREE.Mesh(
+      new THREE.CircleGeometry(1.45, 48),
+      new THREE.MeshBasicMaterial({ color: 0x10182b, transparent: true, opacity: 0.55, side: THREE.DoubleSide })
+    );
+    veil.position.copy(ring.position);
+    scene.add(veil);
+
+    const clock = new THREE.Clock();
+    function animate() {
+      requestAnimationFrame(animate);
+      const t = clock.getElapsedTime();
+      approved.position.y = 1.35 + Math.sin(t * 0.8) * 0.05;
+      cms.position.y = 1.35 + Math.sin(t * 0.8 + 1) * 0.05;
+      held.position.y = 1.35 + Math.sin(t * 0.8 + 2) * 0.05;
+      ring.rotation.z = t * 0.15;
+      controls.update();
+      renderer.render(scene, camera);
+    }
+    animate();
+
+    addEventListener('resize', () => {
+      camera.aspect = innerWidth / innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(innerWidth, innerHeight);
+    });
+  </script>
+</body>
+</html>
