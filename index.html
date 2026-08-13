@@ -295,6 +295,11 @@
       renderer.setPixelRatio(Math.min(devicePixelRatio, 1.75));
       renderer.setSize(innerWidth, innerHeight);
       document.body.prepend(renderer.domElement);
+      renderer.domElement.setAttribute('role', 'img');
+      renderer.domElement.setAttribute(
+        'aria-label',
+        'Interactive ProofPress evidence world. Meet Scout, then Follow Scout through rooms. Drag to look. Scroll or use arrow keys to move between chapters.'
+      );
     } catch (err) {
       console.warn('WebGL unavailable — HUD navigation still works', err);
     }
