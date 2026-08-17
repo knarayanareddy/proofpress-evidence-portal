@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>ProofPress — Guided Evidence World · v8 stations</title>
-  <!-- BUILD_STAMP: v8-stations-pedestals-arches -->
+  <title>ProofPress — Guided Evidence World · v9 signal</title>
+  <!-- BUILD_STAMP: v9-signal-bed -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet" />
@@ -117,6 +117,22 @@
       background: transparent; border: 1px solid var(--signal-soft); color: #c9d2e3;
     }
     .actions .ghost:hover:not(:disabled) { background: rgba(79,124,255,.08); }
+    .actions .signal[aria-pressed="true"] {
+      border-color: var(--mint); color: var(--paper);
+      background: rgba(20,184,122,.12);
+    }
+    .eq {
+      display: none; align-items: flex-end; gap: 3px; height: 14px; margin-left: 2px;
+    }
+    .signal[aria-pressed="true"] + .eq { display: inline-flex; }
+    .eq i {
+      display: block; width: 3px; height: 4px; background: var(--mint);
+      transform-origin: bottom; opacity: .85;
+    }
+    .sr-only {
+      position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+      overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0;
+    }
     .gate {
       position: absolute; inset: 0; z-index: 9;
       display: grid; place-items: center;
@@ -171,7 +187,7 @@
   <div class="flash" id="flash" aria-hidden="true"></div>
   <div class="topbar">
     <div class="brand">ProofPress</div>
-    <div class="hint">Drag to look · Follow Scout</div>
+    <div class="hint">Drag to look · Follow Scout · Signal optional</div>
   </div>
   <nav class="chapters" id="chapters" aria-label="Chapters"></nav>
   <div class="hud">
@@ -188,13 +204,16 @@
     <div class="actions">
       <button type="button" id="follow">Follow Scout →</button>
       <button type="button" class="ghost" id="prev">← Back</button>
+      <button type="button" class="ghost signal" id="signal" aria-pressed="false" aria-describedby="signalHelp">Signal off</button>
+      <span class="eq" id="eq" aria-hidden="true"><i></i><i></i><i></i></span>
+      <span id="signalHelp" class="sr-only">Optional oscillator bed. Default silent. No recorded music.</span>
     </div>
   </div>
   <div class="gate" id="gate">
     <div class="gate-card">
       <p class="eyebrow">Evidence world</p>
       <h1>ProofPress</h1>
-      <p>Scout leads you from rules to approved claims—then shows what stays held. The CMS ledger below remains the source of truth.</p>
+      <p>Scout leads you from rules to approved claims—then shows what stays held. The CMS ledger below remains the source of truth. Signal stays off until you turn it on.</p>
       <button type="button" id="enter">Meet Scout & enter</button>
     </div>
   </div>
@@ -739,6 +758,211 @@
     const flash = document.getElementById('flash');
     const speechEl = document.getElementById('speech');
     const chapters = document.getElementById('chapters');
+    const signalBtn = document.getElementById('signal');
+    const eqBars = [...document.querySelectorAll('#eq i')];
+
+    const HELD_ROOM = 5;
+    const HUMAN_ROOM = 6;
+    const ROOM_BED = [
+      [220.00, 330.00],
+      [233.08, 311.13],
+      [220.00, 329.63],
+      [196.00, 293.66],
+      [261.63, 392.00],
+      [220.00, 311.13],
+      [174.61, 220.00],
+    ];
+    const BED_GAIN = [0.026, 0.020, 0.024, 0.022, 0.030, 0.018, 0.007];
+
+    const keyBase = key.intensity;
+    const blueBase = blue.intensity;
+    const fillBase = fill.intensity;
+    let bloom = 0;
+    let humBloomed = false;
+    let tickAcc = 0;
+    let pageQuiet = false;
+    let worldPaused = false;
+
+    const Signal = {
+      enabled: false,
+      ctx: null,
+      master: null,
+      bedGain: null,
+      humGain: null,
+      sfxGain: null,
+      analyser: null,
+      freqData: null,
+      oscA: null,
+      oscB: null,
+      humA: null,
+      humB: null,
+      bedRoom: 0,
+
+      unlock() {
+        if (this.ctx) {
+          if (this.ctx.state === 'suspended') this.ctx.resume();
+          return true;
+        }
+        const AC = window.AudioContext || window.webkitAudioContext;
+        if (!AC) return false;
+        const ctx = new AC();
+        const master = ctx.createGain();
+        master.gain.value = 0;
+        const analyser = ctx.createAnalyser();
+        analyser.fftSize = 32;
+        analyser.smoothingTimeConstant = 0.72;
+        master.connect(analyser);
+        analyser.connect(ctx.destination);
+
+        const bedGain = ctx.createGain();
+        bedGain.gain.value = 0;
+        bedGain.connect(master);
+        const oscA = ctx.createOscillator();
+        const oscB = ctx.createOscillator();
+        oscA.type = 'sine';
+        oscB.type = 'sine';
+        oscA.frequency.value = ROOM_BED[0][0];
+        oscB.frequency.value = ROOM_BED[0][1];
+        oscB.detune.value = 6;
+        oscA.connect(bedGain);
+        oscB.connect(bedGain);
+        oscA.start();
+        oscB.start();
+
+        const humGain = ctx.createGain();
+        humGain.gain.value = 0;
+        const humFilter = ctx.createBiquadFilter();
+        humFilter.type = 'lowpass';
+        humFilter.frequency.value = 420;
+        humFilter.Q.value = 0.7;
+        humGain.connect(master);
+        const humA = ctx.createOscillator();
+        const humB = ctx.createOscillator();
+        humA.type = 'sine';
+        humB.type = 'sine';
+        humA.frequency.value = 82;
+        humB.frequency.value = 123;
+        humA.connect(humFilter);
+        humB.connect(humFilter);
+        humFilter.connect(humGain);
+        humA.start();
+        humB.start();
+
+        const sfxGain = ctx.createGain();
+        sfxGain.gain.value = 0.7;
+        sfxGain.connect(master);
+
+        this.ctx = ctx;
+        this.master = master;
+        this.bedGain = bedGain;
+        this.humGain = humGain;
+        this.sfxGain = sfxGain;
+        this.analyser = analyser;
+        this.freqData = new Uint8Array(analyser.frequencyBinCount);
+        this.oscA = oscA;
+        this.oscB = oscB;
+        this.humA = humA;
+        this.humB = humB;
+        return true;
+      },
+
+      setEnabled(on) {
+        if (on) {
+          if (!this.unlock()) return;
+          this.enabled = true;
+          this.ctx.resume();
+          this.setRoom(room, true);
+          this.duck(true);
+        } else {
+          this.enabled = false;
+          this.duck(true);
+        }
+        signalBtn.setAttribute('aria-pressed', this.enabled ? 'true' : 'false');
+        signalBtn.textContent = this.enabled ? 'Signal on' : 'Signal off';
+      },
+
+      duck(immediate = false) {
+        if (!this.master) return;
+        const silent = !this.enabled || worldPaused || pageQuiet || document.hidden;
+        let target = silent ? 0 : 1;
+        if (!silent && room === HUMAN_ROOM && !transitioning) target = 0.28;
+        const t = this.ctx.currentTime;
+        this.master.gain.cancelScheduledValues(t);
+        this.master.gain.setTargetAtTime(target, t, immediate ? 0.04 : 0.18);
+        if (silent && this.humGain) {
+          this.humGain.gain.setTargetAtTime(0, t, 0.08);
+        }
+      },
+
+      setRoom(idx, snap = false) {
+        if (!this.oscA) return;
+        this.bedRoom = idx;
+        const pair = ROOM_BED[idx] || ROOM_BED[0];
+        const g = BED_GAIN[idx] ?? 0.02;
+        const t = this.ctx.currentTime;
+        const tau = snap ? 0.04 : 0.35;
+        this.oscA.frequency.setTargetAtTime(pair[0], t, tau);
+        this.oscB.frequency.setTargetAtTime(pair[1], t, tau);
+        this.bedGain.gain.setTargetAtTime(this.enabled ? g : 0, t, tau);
+      },
+
+      setHum(amount) {
+        if (!this.humGain || !this.enabled || worldPaused || pageQuiet) return;
+        const t = this.ctx.currentTime;
+        const g = Math.max(0, Math.min(0.012, amount * 0.012));
+        this.humGain.gain.setTargetAtTime(g, t, 0.12);
+      },
+
+      tone(freq, when, peak, dur, type = 'sine') {
+        if (!this.enabled || !this.ctx || worldPaused || pageQuiet) return;
+        try {
+          const t0 = this.ctx.currentTime + when;
+          const osc = this.ctx.createOscillator();
+          const g = this.ctx.createGain();
+          osc.type = type;
+          osc.frequency.value = freq;
+          g.gain.setValueAtTime(0.0001, t0);
+          g.gain.exponentialRampToValueAtTime(peak, t0 + 0.018);
+          g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+          osc.connect(g);
+          g.connect(this.sfxGain);
+          osc.start(t0);
+          osc.stop(t0 + dur + 0.02);
+        } catch (_) {}
+      },
+
+      tick() {
+        this.tone(988, 0, 0.045, 0.055);
+      },
+
+      arrive(idx) {
+        if (idx === HELD_ROOM) {
+          this.tone(220, 0, 0.07, 0.28);
+          this.tone(311.13, 0.06, 0.055, 0.32);
+          return;
+        }
+        this.tone(392, 0, 0.06, 0.2);
+        this.tone(588, 0.07, 0.05, 0.24);
+      },
+
+      readEq() {
+        if (!this.analyser || !this.enabled || !eqBars.length) {
+          eqBars.forEach((el) => { el.style.height = '3px'; });
+          return;
+        }
+        this.analyser.getByteFrequencyData(this.freqData);
+        const n = this.freqData.length;
+        [0.15, 0.4, 0.7].forEach((p, i) => {
+          const v = this.freqData[Math.min(n - 1, Math.floor(n * p))] / 255;
+          eqBars[i].style.height = `${3 + v * 11}px`;
+        });
+      },
+    };
+
+    function bloomTick(amount = 0.85) {
+      bloom = Math.max(bloom, reduced ? amount * 0.35 : amount);
+      pulseFlash();
+    }
 
     ROOMS.forEach((r, i) => {
       const b = document.createElement('button');
@@ -795,6 +1019,10 @@
         humanPortal.scale.setScalar(1);
         humanPortal.userData.open = 0;
       }
+      Signal.setRoom(idx);
+      if (idx !== 0) Signal.arrive(idx);
+      bloomTick(idx === 0 ? 0.32 : idx === HELD_ROOM ? 0.55 : 0.8);
+      Signal.duck();
     }
 
     function goToRoom(next, instant = false) {
@@ -813,7 +1041,6 @@
         targetYaw = 0;
         targetPitch = 0;
         triggerRoomBeat(room);
-        pulseFlash();
         updateHud();
         return;
       }
@@ -822,7 +1049,9 @@
       phaseT = 0;
       phase = 'scout-lead';
       transitioning = true;
-      pulseFlash();
+      humBloomed = false;
+      tickAcc = 0;
+      Signal.setRoom(dest);
       updateHud();
     }
 
@@ -843,6 +1072,12 @@
     }
 
     followBtn.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); followScout(); });
+    signalBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      enterWorld();
+      Signal.setEnabled(!Signal.enabled);
+    });
     prevBtn.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); goBack(); });
     document.getElementById('enter').addEventListener('click', (e) => {
       e.preventDefault();
@@ -890,17 +1125,40 @@
     });
 
     window.addEventListener('message', (e) => {
-      if (e.data === 'pp-pause') running = false;
-      if (e.data === 'pp-resume' && document.getElementById('gate').hidden) running = true;
+      if (e.data === 'pp-pause') {
+        running = false;
+        worldPaused = true;
+        Signal.duck(true);
+      }
+      if (e.data === 'pp-resume' && document.getElementById('gate').hidden) {
+        running = true;
+        worldPaused = false;
+        if (Signal.enabled && Signal.ctx) Signal.ctx.resume();
+        Signal.duck();
+      }
+      if (e.data === 'pp-page-quiet') {
+        pageQuiet = true;
+        Signal.duck(true);
+      }
+      if (e.data === 'pp-page-loud') {
+        pageQuiet = false;
+        Signal.duck();
+      }
       if (e.data === 'pp-follow') followScout();
       if (e.data && e.data.type === 'pp-goto' && Number.isFinite(e.data.room)) goToRoom(e.data.room, true);
     });
+
+    document.addEventListener('visibilitychange', () => Signal.duck(true));
 
     window.__pp = {
       follow: followScout,
       back: goBack,
       goto: (i) => goToRoom(i, true),
-      state: () => ({ room, camT, scoutT, phase, transitioning, running, beatActive }),
+      signal: (on) => Signal.setEnabled(!!on),
+      state: () => ({
+        room, camT, scoutT, phase, transitioning, running, beatActive,
+        signal: Signal.enabled, pageQuiet, worldPaused, bloom,
+      }),
     };
 
     const clock = new THREE.Clock();
@@ -1099,6 +1357,45 @@
 
       animateFigures(dt, t);
       animateBeats(dt, t);
+
+      if (phase === 'scout-lead' && Signal.enabled && !worldPaused && !pageQuiet) {
+        tickAcc += dt;
+        if (tickAcc >= 0.38) {
+          tickAcc = 0;
+          Signal.tick();
+        }
+      } else {
+        tickAcc = 0;
+      }
+
+      let approach = 0;
+      if (transitioning && phase === 'cam-chase') {
+        const u = Math.min(1, phaseT / 0.85);
+        approach = easeInOut(Math.max(0, (u - 0.42) / 0.58));
+      } else if (transitioning && phase === 'scout-lead') {
+        const u = Math.min(1, phaseT / 0.7);
+        approach = easeInOut(Math.max(0, (u - 0.72) / 0.28)) * 0.32;
+      } else if (room === HUMAN_ROOM && !transitioning) {
+        approach = (humanPortal && humanPortal.userData.open ? humanPortal.userData.open : 0) * 0.5;
+      }
+      Signal.setHum(approach);
+      if (approach > 0.82 && !humBloomed) {
+        humBloomed = true;
+        bloomTick(0.5);
+      }
+      if (approach < 0.2) humBloomed = false;
+
+      bloom = Math.max(0, bloom - dt * (reduced ? 3.2 : 2.1));
+      const b = bloom * bloom * (3 - 2 * bloom);
+      key.intensity = keyBase + b * 0.85;
+      blue.intensity = blueBase + b * 1.35;
+      fill.intensity = fillBase + b * 0.4;
+      const fov = reduced ? 42 : 42 - b * 2.1;
+      if (Math.abs(camera.fov - fov) > 0.04) {
+        camera.fov = fov;
+        camera.updateProjectionMatrix();
+      }
+      Signal.readEq();
 
       if (renderer && !document.hidden) renderer.render(scene, camera);
     }
