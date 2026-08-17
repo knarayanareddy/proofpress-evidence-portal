@@ -982,6 +982,7 @@
         }, reduced ? 0 : 380);
       }
       running = true;
+      if (Signal.enabled && Signal.ctx && Signal.ctx.state === 'suspended') Signal.ctx.resume();
     }
 
     function updateHud() {
