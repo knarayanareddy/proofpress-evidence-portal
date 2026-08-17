@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>ProofPress — Guided Evidence World · v9 signal</title>
-  <!-- BUILD_STAMP: v9-signal-bed -->
+  <title>ProofPress — Guided Evidence World · v10 roam</title>
+  <!-- BUILD_STAMP: v10-free-roam-placards -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet" />
@@ -31,6 +31,7 @@
       font-family: var(--font-body); cursor: grab;
     }
     body.is-dragging { cursor: grabbing; }
+    body.is-pointing { cursor: pointer; }
     canvas { display: block; width: 100%; height: 100%; touch-action: none; }
     .topbar {
       position: absolute; top: 16px; left: 16px; right: 16px; z-index: 6;
@@ -42,7 +43,7 @@
       padding: 9px 12px;
     }
     .brand {
-      color: var(--paper); font-weight: 700; letter-spacing: .12em;
+      color: var(--paper); font-weight: 700;
       font-family: var(--font-display); font-size: 15px; text-transform: none; letter-spacing: .02em;
     }
     .chapters {
@@ -121,14 +122,9 @@
       border-color: var(--mint); color: var(--paper);
       background: rgba(20,184,122,.12);
     }
-    .eq {
-      display: none; align-items: flex-end; gap: 3px; height: 14px; margin-left: 2px;
-    }
+    .eq { display: none; align-items: flex-end; gap: 3px; height: 14px; margin-left: 2px; }
     .signal[aria-pressed="true"] + .eq { display: inline-flex; }
-    .eq i {
-      display: block; width: 3px; height: 4px; background: var(--mint);
-      transform-origin: bottom; opacity: .85;
-    }
+    .eq i { display: block; width: 3px; height: 4px; background: var(--mint); transform-origin: bottom; opacity: .85; }
     .sr-only {
       position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
       overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0;
@@ -142,7 +138,7 @@
     .gate.is-leaving { opacity: 0; pointer-events: none; }
     .gate[hidden] { display: none !important; }
     .gate-card {
-      text-align: left; max-width: 440px; padding: 32px 28px;
+      text-align: left; max-width: 460px; padding: 32px 28px;
       border: 1px solid var(--line); background: rgba(11,16,32,.94);
     }
     .gate-card .eyebrow {
@@ -154,9 +150,7 @@
       font-family: var(--font-display); font-size: clamp(28px, 5vw, 36px);
       font-weight: 600; letter-spacing: -.02em; line-height: 1.1;
     }
-    .gate-card p {
-      margin: 0 0 22px; color: var(--mist); line-height: 1.55; font-size: 15px;
-    }
+    .gate-card p { margin: 0 0 22px; color: var(--mist); line-height: 1.55; font-size: 15px; }
     .gate-card button {
       font-family: var(--font-body); font-weight: 600; font-size: 15px;
       color: #fff; background: var(--signal); border: 0; padding: 14px 22px; cursor: pointer;
@@ -187,14 +181,14 @@
   <div class="flash" id="flash" aria-hidden="true"></div>
   <div class="topbar">
     <div class="brand">ProofPress</div>
-    <div class="hint">Drag to look · Follow Scout · Signal optional</div>
+    <div class="hint">Click floor or card · Drag look · WASD</div>
   </div>
-  <nav class="chapters" id="chapters" aria-label="Chapters"></nav>
+  <nav class="chapters" id="chapters" aria-label="Stations"></nav>
   <div class="hud">
     <div class="speech" id="speech">
       <div class="avatar" aria-hidden="true"></div>
       <div>
-        <p id="scoutLine">I’m Scout. Follow me through the evidence rooms.</p>
+        <p id="scoutLine">I’m Scout. Click where you want me — I’ll walk it.</p>
         <small>Guide</small>
       </div>
     </div>
@@ -202,8 +196,8 @@
     <strong id="roomTitle">Campaign pages that can show their work</strong>
     <span class="body" id="roomBody">Approved evidence in. Reviewable campaign page out.</span>
     <div class="actions">
-      <button type="button" id="follow">Follow Scout →</button>
-      <button type="button" class="ghost" id="prev">← Back</button>
+      <button type="button" id="follow">Next station →</button>
+      <button type="button" class="ghost" id="prev">← Previous</button>
       <button type="button" class="ghost signal" id="signal" aria-pressed="false" aria-describedby="signalHelp">Signal off</button>
       <span class="eq" id="eq" aria-hidden="true"><i></i><i></i><i></i></span>
       <span id="signalHelp" class="sr-only">Optional oscillator bed. Default silent. No recorded music.</span>
@@ -213,102 +207,49 @@
     <div class="gate-card">
       <p class="eyebrow">Evidence world</p>
       <h1>ProofPress</h1>
-      <p>Scout leads you from rules to approved claims—then shows what stays held. The CMS ledger below remains the source of truth. Signal stays off until you turn it on.</p>
+      <p>Click the floor or a placard and Scout walks that path. Drag to look. WASD to steer. Stations are objects in the room — the CMS ledger below is still the source of truth.</p>
       <button type="button" id="enter">Meet Scout & enter</button>
     </div>
   </div>
 
   <script type="importmap">
-  {
-    "imports": {
-      "three": "https://unpkg.com/three@0.160.0/build/three.module.js"
-    }
-  }
+  { "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js" } }
   </script>
   <script type="module">
     import * as THREE from 'three';
 
     const ROOMS = [
-      {
-        label: '01 — Welcome',
-        title: 'Campaign pages that can show their work',
-        body: 'Approved evidence in. Reviewable campaign page out.',
-        scout: 'Welcome. Stick with me—I’ll walk you through how ProofPress keeps claims honest.',
-        z: 0,
-      },
-      {
-        label: '02 — Problem',
-        title: 'AI can invent the proof',
-        body: 'A plausible sentence is not evidence. ProofPress forces a source of truth first.',
-        scout: 'This is the trap. Pretty copy without a CMS record never ships as proof.',
-        z: -12,
-      },
-      {
-        label: '03 — Rules',
-        title: 'Agent Instructions',
-        body: 'Voice, evidence, reuse, and publishing rules stay saved before the agent builds.',
-        scout: 'Meet the Archivist. Rules first—so the agent can’t freestyle facts.',
-        z: -24,
-      },
-      {
-        label: '04 — Pipeline',
-        title: 'Rules → CMS → Review',
-        body: 'Build from Approved proof and the design system, then keep release human.',
-        scout: 'Three stations. Watch them light as we pass—I’ll wait at Review.',
-        z: -36,
-      },
-      {
-        label: '05 — Approved',
-        title: 'Claim stage',
-        body: 'Decorative panels mirror Approved CMS language. The live ledger on the page is the source of truth.',
-        scout: 'These lift because they’re Approved. Follow me—I’ll show what we refuse.',
-        z: -48,
-      },
-      {
-        label: '06 — Held',
-        title: 'Needs approval',
-        body: '“Cuts campaign launch time by 80%.” No approved source. Not used as public proof.',
-        scout: 'Auditor holds the line. This claim stays quarantined until a human approves a source.',
-        z: -60,
-      },
-      {
-        label: '07 — Human',
-        title: 'Build from what you know is true',
-        body: 'Give the agent context. Keep the final decision human. Scroll the page below for the CMS Claim Ledger.',
-        scout: 'Journey done. Scroll below—this portal opens onto the real CMS Claim Ledger.',
-        z: -72,
-      },
+      { label: '01 — Welcome', title: 'Campaign pages that can show their work', body: 'Approved evidence in. Reviewable campaign page out.', scout: 'Click the floor, a card, or a station. I’ll walk whatever path you pick.', z: 0, x: 1.4 },
+      { label: '02 — Problem', title: 'AI can invent the proof', body: 'A plausible sentence is not evidence. ProofPress forces a source of truth first.', scout: 'This is the trap. Pretty copy without a CMS record never ships as proof.', z: -12, x: -1.6 },
+      { label: '03 — Rules', title: 'Agent Instructions', body: 'Voice, evidence, reuse, and publishing rules stay saved before the agent builds.', scout: 'Archivist keeps the rules in the room. Walk around the board — it turns with you.', z: -24, x: 1.8 },
+      { label: '04 — Pipeline', title: 'Rules → CMS → Review', body: 'Build from Approved proof and the design system, then keep release human.', scout: 'Three stations. Approach any of them, in any order.', z: -36, x: 0 },
+      { label: '05 — Approved', title: 'Claim stage', body: 'Decorative panels mirror Approved CMS language. The live ledger on the page is the source of truth.', scout: 'These lift because they’re Approved. Walk between them — they face you.', z: -48, x: 0 },
+      { label: '06 — Held', title: 'Needs approval', body: '“Cuts campaign launch time by 80%.” No approved source. Not used as public proof.', scout: 'Auditor holds the line. This claim stays quarantined until a human approves a source.', z: -60, x: -0.4 },
+      { label: '07 — Human', title: 'Build from what you know is true', body: 'Give the agent context. Keep the final decision human. Scroll the page below for the CMS Claim Ledger.', scout: 'Portal’s open. Walk through, or scroll the page — the CMS Claim Ledger is below.', z: -72, x: 0 },
     ];
-
     const APPROVED = [
       { label: 'APPROVED · Policy', claim: 'If a claim cannot be verified, the workflow flags it for approval instead of fabricating it.', color: '#14b87a' },
       { label: 'APPROVED · Workflow', claim: 'The page is built from your existing components and approved CMS content.', color: '#2457e6' },
       { label: 'APPROVED · Policy', claim: 'Every proposed change is visible for human review before it goes live.', color: '#14b87a' },
     ];
-
     const lastRoom = ROOMS.length - 1;
+    const HELD_ROOM = 5, HUMAN_ROOM = 6;
+    const X_MIN = -9, X_MAX = 9, Z_MIN = -80, Z_MAX = 8;
     const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const ROOM_BED = [[220,330],[233.08,311.13],[220,329.63],[196,293.66],[261.63,392],[220,311.13],[174.61,220]];
+    const BED_GAIN = [0.026,0.02,0.024,0.022,0.03,0.018,0.007];
 
-    let room = 0;
-    let camT = 0;
-    let scoutT = 0;
-    let dragging = false;
-    let lastX = 0, lastY = 0;
-    let yaw = 0, pitch = 0, targetYaw = 0, targetPitch = 0;
-    let running = false;
-    let transitioning = false;
-    let phase = 'idle';
-    let phaseT = 0;
-    let fromRoom = 0;
-    let toRoom = 0;
-    let beatT = 0;
-    let beatActive = false;
+    let room = 0, running = false, walking = false, dragging = false;
+    let beatT = 0, beatActive = false, bloom = 0, humBloomed = false, tickAcc = 0, footAcc = 0;
+    let pageQuiet = false, worldPaused = false, riskPulse = 0;
+    let pointerX = 0, pointerY = 0, downX = 0, downY = 0;
+    let orbitYaw = 0.18, orbitPitch = 0.42, targetYaw = 0.18, targetPitch = 0.42;
+    const keys = { w:0, a:0, s:0, d:0 };
 
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x070b16);
-    scene.fog = new THREE.FogExp2(0x070b16, 0.028);
-
-    const camera = new THREE.PerspectiveCamera(42, innerWidth / innerHeight, 0.1, 120);
+    scene.fog = new THREE.FogExp2(0x070b16, 0.022);
+    const camera = new THREE.PerspectiveCamera(46, innerWidth / innerHeight, 0.1, 140);
     let renderer = null;
     try {
       renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
@@ -316,45 +257,27 @@
       renderer.setSize(innerWidth, innerHeight);
       document.body.prepend(renderer.domElement);
       renderer.domElement.setAttribute('role', 'img');
-      renderer.domElement.setAttribute(
-        'aria-label',
-        'Interactive ProofPress evidence world. Meet Scout, then Follow Scout through rooms. Drag to look. Scroll or use arrow keys to move between chapters.'
-      );
+      renderer.domElement.setAttribute('aria-label', 'Walkable ProofPress evidence world. Click the floor or a placard so Scout walks there. Drag to look. WASD to steer.');
     } catch (err) {
       console.warn('WebGL unavailable — HUD navigation still works', err);
     }
 
-    scene.add(new THREE.HemisphereLight(0x4a5d8c, 0x070b16, 0.55));
-    const key = new THREE.DirectionalLight(0xffffff, 1.05);
-    key.position.set(5, 12, 4);
+    scene.add(new THREE.HemisphereLight(0x5a6d9c, 0x070b16, 0.62));
+    const key = new THREE.DirectionalLight(0xffffff, 1.15);
+    key.position.set(6, 14, 5);
     scene.add(key);
-    const blue = new THREE.PointLight(0x2457e6, 1.4, 36);
-    blue.position.set(-4, 4, 3);
+    const blue = new THREE.PointLight(0x2457e6, 1.35, 40);
+    blue.position.set(-5, 5, 2);
     scene.add(blue);
-    const fill = new THREE.PointLight(0x14b87a, 0.45, 28);
-    fill.position.set(5, 2.5, -20);
+    const fill = new THREE.PointLight(0x14b87a, 0.5, 32);
+    fill.position.set(6, 3, -22);
     scene.add(fill);
+    const keyBase = key.intensity, blueBase = blue.intensity, fillBase = fill.intensity;
 
-    const floorMat = new THREE.MeshStandardMaterial({ color: 0x0a0f1c, metalness: 0.35, roughness: 0.55 });
-
-    function addFloor(z, accent = 0x2457e6) {
-      const floor = new THREE.Mesh(new THREE.CircleGeometry(9.2, 72), floorMat);
-      floor.rotation.x = -Math.PI / 2;
-      floor.position.set(0, 0, z);
-      scene.add(floor);
-      const ring = new THREE.Mesh(
-        new THREE.RingGeometry(7.6, 8.05, 64),
-        new THREE.MeshStandardMaterial({ color: accent, emissive: accent, emissiveIntensity: 0.22, side: THREE.DoubleSide, transparent: true, opacity: 0.55 })
-      );
-      ring.rotation.x = -Math.PI / 2;
-      ring.position.set(0, 0.02, z);
-      scene.add(ring);
-      const grid = new THREE.GridHelper(18, 18, accent, 0x152033);
-      grid.position.z = z;
-      grid.material.transparent = true;
-      grid.material.opacity = 0.28;
-      scene.add(grid);
-    }
+    const floorMat = new THREE.MeshStandardMaterial({ color: 0x0a0f1c, metalness: 0.38, roughness: 0.52 });
+    const pickables = [];
+    const animators = [];
+    const floorPads = [];
 
     function wrap(ctx, text, maxWidth) {
       const words = text.split(' ');
@@ -362,10 +285,8 @@
       let line = '';
       for (const w of words) {
         const test = line + w + ' ';
-        if (ctx.measureText(test).width > maxWidth && line) {
-          out.push(line.trim());
-          line = w + ' ';
-        } else line = test;
+        if (ctx.measureText(test).width > maxWidth && line) { out.push(line.trim()); line = w + ' '; }
+        else line = test;
       }
       if (line.trim()) out.push(line.trim());
       return out.slice(0, 5);
@@ -376,71 +297,96 @@
       canvas.width = 768; canvas.height = 480;
       const ctx = canvas.getContext('2d');
       const g = ctx.createLinearGradient(0, 0, 0, 480);
-      g.addColorStop(0, '#1a2438');
-      g.addColorStop(1, '#0d1424');
-      ctx.fillStyle = g;
-      ctx.fillRect(0, 0, 768, 480);
-      // soft vignette
-      const vg = ctx.createRadialGradient(384, 220, 40, 384, 240, 420);
-      vg.addColorStop(0, 'rgba(79,124,255,0.08)');
-      vg.addColorStop(1, 'rgba(0,0,0,0)');
-      ctx.fillStyle = vg;
-      ctx.fillRect(0, 0, 768, 480);
-      ctx.fillStyle = accent;
-      ctx.fillRect(0, 0, 14, 480);
-      ctx.fillStyle = 'rgba(244,247,255,0.06)';
-      ctx.fillRect(14, 0, 754, 64);
+      g.addColorStop(0, '#243044'); g.addColorStop(1, '#10182a');
+      ctx.fillStyle = g; ctx.fillRect(0, 0, 768, 480);
+      const vg = ctx.createRadialGradient(520, 80, 20, 384, 200, 460);
+      vg.addColorStop(0, 'rgba(244,247,255,0.14)'); vg.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = vg; ctx.fillRect(0, 0, 768, 480);
+      ctx.fillStyle = accent; ctx.fillRect(0, 0, 16, 480);
+      ctx.fillStyle = 'rgba(244,247,255,0.07)'; ctx.fillRect(16, 0, 752, 64);
       if (opts.badge) {
-        ctx.fillStyle = accent;
-        ctx.fillRect(28, 20, 92, 32);
-        ctx.fillStyle = '#070b16';
-        ctx.font = '700 18px Manrope, system-ui, sans-serif';
-        ctx.fillText(opts.badge, 48, 42);
+        ctx.fillStyle = accent; ctx.fillRect(32, 18, 96, 34);
+        ctx.fillStyle = '#070b16'; ctx.font = '700 18px Manrope, system-ui, sans-serif';
+        ctx.fillText(opts.badge, 52, 41);
       }
-      ctx.fillStyle = '#a8b0c4';
-      ctx.font = '600 22px Manrope, system-ui, sans-serif';
-      ctx.letterSpacing = '0.08em';
-      ctx.fillText(title, opts.badge ? 130 : 36, 44);
-      ctx.fillStyle = '#f4f7ff';
-      ctx.font = '600 36px Fraunces, Georgia, serif';
-      let y = 130;
-      for (const line of wrap(ctx, body, 680)) {
-        ctx.fillText(line, 36, y);
-        y += 46;
-      }
+      ctx.fillStyle = '#a8b0c4'; ctx.font = '600 22px Manrope, system-ui, sans-serif';
+      ctx.fillText(title, opts.badge ? 142 : 40, 44);
+      ctx.fillStyle = '#f4f7ff'; ctx.font = '600 34px Fraunces, Georgia, serif';
+      let y = 128;
+      for (const line of wrap(ctx, body, 680)) { ctx.fillText(line, 40, y); y += 44; }
       if (opts.footer) {
-        ctx.fillStyle = '#7f8aa3';
-        ctx.font = '500 18px Manrope, system-ui, sans-serif';
-        ctx.fillText(opts.footer, 36, 440);
+        ctx.fillStyle = '#7f8aa3'; ctx.font = '500 18px Manrope, system-ui, sans-serif';
+        ctx.fillText(opts.footer, 40, 440);
       }
       const tex = new THREE.CanvasTexture(canvas);
       tex.anisotropy = 4;
+      tex.colorSpace = THREE.SRGBColorSpace;
       return tex;
     }
 
-    function makeCard(tex, accentHex, w = 2.4, h = 1.55) {
+    function makePlacard(tex, accent, w = 2.6, h = 1.7) {
       const g = new THREE.Group();
-      const body = new THREE.Mesh(
-        new THREE.BoxGeometry(w, h, 0.12),
-        new THREE.MeshStandardMaterial({ color: 0x10182a, roughness: 0.42, metalness: 0.28 })
+      const d = 0.3;
+      const board = new THREE.Mesh(
+        new THREE.BoxGeometry(w, h, d),
+        new THREE.MeshStandardMaterial({ color: 0x141c30, metalness: 0.58, roughness: 0.3 })
       );
-      g.add(body);
-      const rim = new THREE.Mesh(
-        new THREE.BoxGeometry(w + 0.04, h + 0.04, 0.03),
-        new THREE.MeshStandardMaterial({ color: accentHex, emissive: accentHex, emissiveIntensity: 0.38 })
-      );
-      rim.position.z = -0.07;
-      g.add(rim);
-      g.userData.rim = rim;
+      g.add(board);
+      const fm = new THREE.MeshStandardMaterial({ color: accent, emissive: accent, emissiveIntensity: 0.5, metalness: 0.65, roughness: 0.22 });
+      const t = 0.05;
+      const top = new THREE.Mesh(new THREE.BoxGeometry(w + 0.08, t, d + 0.06), fm);
+      top.position.y = h / 2;
+      const bot = top.clone(); bot.position.y = -h / 2;
+      const left = new THREE.Mesh(new THREE.BoxGeometry(t, h + 0.02, d + 0.06), fm);
+      left.position.x = -w / 2;
+      const right = left.clone(); right.position.x = w / 2;
+      g.add(top, bot, left, right);
       const face = new THREE.Mesh(
-        new THREE.PlaneGeometry(w - 0.16, h - 0.14),
-        new THREE.MeshBasicMaterial({ map: tex })
+        new THREE.PlaneGeometry(w - 0.14, h - 0.14),
+        new THREE.MeshStandardMaterial({ map: tex, roughness: 0.62, metalness: 0.08 })
       );
-      face.position.z = 0.07;
+      face.position.z = d / 2 + 0.014;
       g.add(face);
-      const light = new THREE.PointLight(accentHex, 0.35, 4.5);
-      light.position.set(0, 0, 0.8);
-      g.add(light);
+      const back = new THREE.Mesh(
+        new THREE.PlaneGeometry(w - 0.1, h - 0.1),
+        new THREE.MeshStandardMaterial({ color: 0x0b1220, metalness: 0.45, roughness: 0.48 })
+      );
+      back.rotation.y = Math.PI; back.position.z = -(d / 2 + 0.014);
+      g.add(back);
+      const glare = new THREE.Mesh(
+        new THREE.PlaneGeometry(w * 0.42, h * 0.7),
+        new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0, depthWrite: false })
+      );
+      glare.position.set(-w * 0.18, h * 0.12, d / 2 + 0.02);
+      g.add(glare);
+      const legMat = new THREE.MeshStandardMaterial({ color: 0x1a2438, metalness: 0.55, roughness: 0.38 });
+      [-w * 0.3, w * 0.3].forEach((x) => {
+        const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.05, 0.62, 10), legMat);
+        leg.position.set(x, -h / 2 - 0.31, 0.02);
+        g.add(leg);
+      });
+      const foot = new THREE.Mesh(new THREE.BoxGeometry(w * 0.62, 0.06, 0.28), legMat);
+      foot.position.set(0, -h / 2 - 0.62, 0);
+      g.add(foot);
+      const lamp = new THREE.PointLight(accent, 0.55, 5.5);
+      lamp.position.set(0, 0.15, 0.95);
+      g.add(lamp);
+      const standH = h / 2 + 0.65;
+      g.userData = {
+        kind: 'placard', pick: true, hover: 0, press: 0, unfold: reduced ? 1 : 0,
+        restRotY: 0, standH, w, h, glare, lamp, face, board, rim: top, accent,
+      };
+      pickables.push(g);
+      animators.push(g);
+      return g;
+    }
+
+    function placePlacard(g, x, z, rotY = 0) {
+      g.userData.restRotY = rotY;
+      g.position.set(x, g.userData.standH, z);
+      g.rotation.y = rotY;
+      if (!reduced) g.rotation.x = -1.05;
+      scene.add(g);
       return g;
     }
 
@@ -448,310 +394,236 @@
       const canvas = document.createElement('canvas');
       canvas.width = 256; canvas.height = 256;
       const ctx = canvas.getContext('2d');
-      ctx.clearRect(0, 0, 256, 256);
       ctx.fillStyle = '#' + color.toString(16).padStart(6, '0');
       ctx.font = '700 140px Fraunces, Georgia, serif';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.shadowColor = '#' + color.toString(16).padStart(6, '0');
-      ctx.shadowBlur = 28;
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.shadowColor = ctx.fillStyle; ctx.shadowBlur = 28;
       ctx.fillText(num, 128, 128);
-      const tex = new THREE.CanvasTexture(canvas);
       const mesh = new THREE.Mesh(
-        new THREE.PlaneGeometry(1.1, 1.1),
-        new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false })
+        new THREE.PlaneGeometry(1.15, 1.15),
+        new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(canvas), transparent: true, depthWrite: false })
       );
       return mesh;
     }
 
-    function makeStation({ num, title, body, color, x, z }) {
-      const g = new THREE.Group();
-      const hex = '#' + color.toString(16).padStart(6, '0');
-      const tex = makeTextPanel(title, body, hex, { badge: num, footer: 'Rules → Build → Review' });
-      const card = makeCard(tex, color, 2.7, 1.95);
-      card.position.set(0, 1.85, 0);
-      card.rotation.y = x < 0 ? 0.18 : x > 0 ? -0.18 : 0;
-      g.add(card);
-
-      const numMesh = makeBigNum(num, color);
-      numMesh.position.set(0, 3.15, 0.2);
-      g.add(numMesh);
-
-      const plinth = new THREE.Mesh(
-        new THREE.CylinderGeometry(1.05, 1.25, 0.28, 40),
-        new THREE.MeshStandardMaterial({ color: 0x0c1324, metalness: 0.55, roughness: 0.28 })
+    function addFloorPad(z, accent = 0x2457e6) {
+      const floor = new THREE.Mesh(new THREE.CircleGeometry(8.6, 64), floorMat);
+      floor.rotation.x = -Math.PI / 2; floor.position.set(0, 0.01, z);
+      scene.add(floor);
+      const ring = new THREE.Mesh(
+        new THREE.RingGeometry(7.2, 7.7, 64),
+        new THREE.MeshStandardMaterial({ color: accent, emissive: accent, emissiveIntensity: 0.28, side: THREE.DoubleSide, transparent: true, opacity: 0.7 })
       );
-      plinth.position.y = 0.14;
-      g.add(plinth);
-
-      const plinthTop = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.92, 0.92, 0.06, 40),
-        new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: 0.45, metalness: 0.3, roughness: 0.35 })
-      );
-      plinthTop.position.y = 0.3;
-      g.add(plinthTop);
-
-      const halo = new THREE.Mesh(
-        new THREE.RingGeometry(1.15, 1.55, 64),
-        new THREE.MeshStandardMaterial({
-          color, emissive: color, emissiveIntensity: 0.45,
-          side: THREE.DoubleSide, transparent: true, opacity: 0.85,
-        })
-      );
-      halo.rotation.x = -Math.PI / 2;
-      halo.position.y = 0.34;
-      g.add(halo);
-
-      const arch = new THREE.Mesh(
-        new THREE.TorusGeometry(1.35, 0.045, 12, 48, Math.PI),
-        new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: 0.5 })
-      );
-      arch.position.set(0, 1.05, -0.55);
-      arch.rotation.z = Math.PI;
-      g.add(arch);
-
-      const lamp = new THREE.PointLight(color, 0.9, 7);
-      lamp.position.set(0, 2.6, 0.6);
-      g.add(lamp);
-
-      g.position.set(x, 0, z);
-      g.userData.rim = card.userData.rim;
-      g.userData.halo = halo;
-      g.userData.lamp = lamp;
-      g.userData.card = card;
-      g.userData.numMesh = numMesh;
-      g.userData.plinthTop = plinthTop;
-      g.userData.baseEmissive = 0.35;
-      g.userData.lit = false;
-      return g;
+      ring.rotation.x = -Math.PI / 2; ring.position.set(0, 0.03, z);
+      scene.add(ring);
+      const grid = new THREE.GridHelper(16, 16, accent, 0x152033);
+      grid.position.z = z; grid.material.transparent = true; grid.material.opacity = 0.3;
+      scene.add(grid);
+      floorPads.push({ z, ring, accent });
+      return ring;
     }
 
     function createFigure({ accent = 0x2457e6, mint = 0x14b87a, scale = 1 } = {}) {
       const root = new THREE.Group();
-      const bodyMat = new THREE.MeshStandardMaterial({ color: 0x1a2744, metalness: 0.35, roughness: 0.45 });
-      const accentMat = new THREE.MeshStandardMaterial({ color: accent, emissive: accent, emissiveIntensity: 0.45 });
-      const mintMat = new THREE.MeshStandardMaterial({ color: mint, emissive: mint, emissiveIntensity: 0.35 });
-
-      const hips = new THREE.Group();
-      hips.position.y = 0.55 * scale;
-      root.add(hips);
-
+      const bodyMat = new THREE.MeshStandardMaterial({ color: 0x1a2744, metalness: 0.38, roughness: 0.42 });
+      const accentMat = new THREE.MeshStandardMaterial({ color: accent, emissive: accent, emissiveIntensity: 0.5 });
+      const mintMat = new THREE.MeshStandardMaterial({ color: mint, emissive: mint, emissiveIntensity: 0.4 });
+      const hips = new THREE.Group(); hips.position.y = 0.55 * scale; root.add(hips);
       const torso = new THREE.Mesh(new THREE.CapsuleGeometry(0.28 * scale, 0.45 * scale, 6, 12), bodyMat);
-      torso.position.y = 0.3 * scale;
-      hips.add(torso);
-
+      torso.position.y = 0.3 * scale; hips.add(torso);
       const head = new THREE.Mesh(new THREE.SphereGeometry(0.26 * scale, 20, 16), bodyMat);
-      head.position.y = 0.9 * scale;
-      hips.add(head);
-
+      head.position.y = 0.9 * scale; hips.add(head);
       const visor = new THREE.Mesh(new THREE.BoxGeometry(0.36 * scale, 0.1 * scale, 0.08 * scale), accentMat);
-      visor.position.set(0, 0.93 * scale, 0.2 * scale);
-      hips.add(visor);
-
+      visor.position.set(0, 0.93 * scale, 0.2 * scale); hips.add(visor);
       const antenna = new THREE.Mesh(new THREE.CylinderGeometry(0.02 * scale, 0.02 * scale, 0.28 * scale, 8), accentMat);
-      antenna.position.set(0.12 * scale, 1.17 * scale, 0);
-      hips.add(antenna);
+      antenna.position.set(0.12 * scale, 1.17 * scale, 0); hips.add(antenna);
       const tip = new THREE.Mesh(new THREE.SphereGeometry(0.05 * scale, 10, 10), mintMat);
-      tip.position.set(0.12 * scale, 1.33 * scale, 0);
-      hips.add(tip);
-
+      tip.position.set(0.12 * scale, 1.33 * scale, 0); hips.add(tip);
       const armL = new THREE.Mesh(new THREE.CapsuleGeometry(0.07 * scale, 0.28 * scale, 4, 8), bodyMat);
-      armL.position.set(-0.38 * scale, 0.4 * scale, 0);
-      armL.rotation.z = 0.35;
-      hips.add(armL);
-      const armR = armL.clone();
-      armR.position.x = 0.38 * scale;
-      armR.rotation.z = -0.35;
-      hips.add(armR);
-
+      armL.position.set(-0.38 * scale, 0.4 * scale, 0); armL.rotation.z = 0.35; hips.add(armL);
+      const armR = armL.clone(); armR.position.x = 0.38 * scale; armR.rotation.z = -0.35; hips.add(armR);
       const legL = new THREE.Mesh(new THREE.CapsuleGeometry(0.08 * scale, 0.32 * scale, 4, 8), bodyMat);
-      legL.position.set(-0.14 * scale, -0.35 * scale, 0);
-      hips.add(legL);
-      const legR = legL.clone();
-      legR.position.x = 0.14 * scale;
-      hips.add(legR);
-
-      const glow = new THREE.PointLight(accent, 0.7, 5.5);
-      glow.position.set(0, 1.1 * scale, 0.35 * scale);
-      root.add(glow);
-
-      return { root, hips, armR, armL, legL, legR, tip, visor, accentMat };
+      legL.position.set(-0.14 * scale, -0.35 * scale, 0); hips.add(legL);
+      const legR = legL.clone(); legR.position.x = 0.14 * scale; hips.add(legR);
+      const glow = new THREE.PointLight(accent, 0.75, 5.5); glow.position.set(0, 1.1 * scale, 0.35 * scale); root.add(glow);
+      return { root, hips, armR, armL, legL, legR, tip, visor, accentMat, scale };
     }
+
+    const walkway = new THREE.Mesh(new THREE.BoxGeometry(12, 0.05, 94), floorMat);
+    walkway.position.set(0, -0.025, -34);
+    scene.add(walkway);
+    const ground = new THREE.Mesh(
+      new THREE.PlaneGeometry(26, 100),
+      new THREE.MeshBasicMaterial({ visible: false })
+    );
+    ground.rotation.x = -Math.PI / 2; ground.position.z = -34;
+    ground.userData.ground = true;
+    scene.add(ground);
 
     const scoutParts = createFigure({ accent: 0x2457e6, mint: 0x14b87a, scale: 1 });
     const scout = scoutParts.root;
-    scout.position.set(1.6, 0, 4);
+    const scoutPos = new THREE.Vector3(1.6, 0, 4);
+    const scoutDest = scoutPos.clone();
+    const scoutVel = new THREE.Vector3();
+    scout.position.copy(scoutPos);
     scene.add(scout);
 
-    // Room props + beats
-    const welcomeRing = new THREE.Mesh(
-      new THREE.TorusGeometry(1.6, 0.04, 12, 64),
-      new THREE.MeshStandardMaterial({ color: 0x4f7cff, emissive: 0x2457e6, emissiveIntensity: 0.4 })
+    const destMark = new THREE.Mesh(
+      new THREE.RingGeometry(0.28, 0.4, 32),
+      new THREE.MeshBasicMaterial({ color: 0x4f7cff, transparent: true, opacity: 0, side: THREE.DoubleSide, depthWrite: false })
     );
-    welcomeRing.position.set(0, 0.05, 0);
-    welcomeRing.rotation.x = Math.PI / 2;
+    destMark.rotation.x = -Math.PI / 2; destMark.position.y = 0.04;
+    scene.add(destMark);
+    const pathGeo = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3()]);
+    const pathLine = new THREE.Line(pathGeo, new THREE.LineBasicMaterial({ color: 0x4f7cff, transparent: true, opacity: 0.0 }));
+    scene.add(pathLine);
 
-    let riskCard = null;
-    let riskPulse = 0;
-    const stations = [];
-    const approvedCards = [];
-    let humanPortal = null;
-    let barrierPosts = [];
-
-    addFloor(0);
-    {
-      const tex = makeTextPanel('PROOFPRESS', 'Approved evidence in. Reviewable campaign page out.', '#2457e6');
-      const card = makeCard(tex, 0x2457e6, 3.1, 1.8);
-      card.position.set(-1.2, 1.5, -1.8);
-      scene.add(card);
-      scene.add(welcomeRing);
+    const clickRings = [];
+    for (let i = 0; i < 6; i++) {
+      const r = new THREE.Mesh(
+        new THREE.RingGeometry(0.12, 0.2, 24),
+        new THREE.MeshBasicMaterial({ color: 0x4f7cff, transparent: true, opacity: 0, side: THREE.DoubleSide, depthWrite: false })
+      );
+      r.rotation.x = -Math.PI / 2; r.userData.life = 0; r.visible = false;
+      scene.add(r); clickRings.push(r);
     }
-
-    addFloor(-12);
-    {
-      const tex = makeTextPanel('THE RISK', 'AI can generate a page. It can also invent the proof.', '#ff5a45');
-      riskCard = makeCard(tex, 0xff5a45, 2.8, 1.7);
-      riskCard.position.set(0, 1.45, -12);
-      riskCard.userData.baseY = 1.45;
-      scene.add(riskCard);
+    const footprints = [];
+    for (let i = 0; i < 18; i++) {
+      const f = new THREE.Mesh(
+        new THREE.CircleGeometry(0.09, 10),
+        new THREE.MeshBasicMaterial({ color: 0x4f7cff, transparent: true, opacity: 0, depthWrite: false })
+      );
+      f.rotation.x = -Math.PI / 2; f.position.y = 0.03; f.visible = false;
+      scene.add(f); footprints.push(f);
     }
+    let footI = 0;
+    const dustGeo = new THREE.BufferGeometry();
+    const dustN = 48;
+    const dustPos = new Float32Array(dustN * 3);
+    dustGeo.setAttribute('position', new THREE.BufferAttribute(dustPos, 3));
+    const dust = new THREE.Points(dustGeo, new THREE.PointsMaterial({ color: 0x8aa4ff, size: 0.06, transparent: true, opacity: 0.0, depthWrite: false }));
+    scene.add(dust);
 
-    addFloor(-24);
-    {
-      const tex = makeTextPanel('AGENT INSTRUCTIONS', 'Voice, evidence, reuse, publishing. Saved before the agent builds.', '#2457e6');
-      const card = makeCard(tex, 0x2457e6, 3.0, 1.9);
-      card.position.set(0, 1.55, -24);
-      scene.add(card);
+    addFloorPad(0);
+    const welcomeRing = new THREE.Mesh(
+      new THREE.TorusGeometry(1.7, 0.05, 14, 72),
+      new THREE.MeshStandardMaterial({ color: 0x4f7cff, emissive: 0x2457e6, emissiveIntensity: 0.55, metalness: 0.4, roughness: 0.3 })
+    );
+    welcomeRing.position.set(0, 0.08, 0); welcomeRing.rotation.x = Math.PI / 2;
+    scene.add(welcomeRing);
+    const welcomeBits = [];
+    for (let i = 0; i < 8; i++) {
+      const bit = new THREE.Mesh(
+        new THREE.BoxGeometry(0.12, 0.12, 0.12),
+        new THREE.MeshStandardMaterial({ color: 0x4f7cff, emissive: 0x2457e6, emissiveIntensity: 0.7 })
+      );
+      bit.userData.a = (i / 8) * Math.PI * 2;
+      scene.add(bit); welcomeBits.push(bit);
     }
+    const welcomeCard = placePlacard(
+      makePlacard(makeTextPanel('PROOFPRESS', 'Approved evidence in. Reviewable campaign page out.', '#2457e6'), 0x2457e6, 3.15, 1.85),
+      -2.35, -1.6, 0.35
+    );
+    welcomeCard.userData.hotspot = 0;
 
-    // Archivist — Rules room accent
+    addFloorPad(-12, 0xff5a45);
+    const riskCard = placePlacard(
+      makePlacard(makeTextPanel('THE RISK', 'AI can generate a page. It can also invent the proof.', '#ff5a45'), 0xff5a45, 2.9, 1.75),
+      2.1, -12, -0.28
+    );
+    riskCard.userData.hotspot = 1; riskCard.userData.baseY = riskCard.position.y;
+
+    addFloorPad(-24);
+    const rulesCard = placePlacard(
+      makePlacard(makeTextPanel('AGENT INSTRUCTIONS', 'Voice, evidence, reuse, publishing. Saved before the agent builds.', '#2457e6'), 0x2457e6, 3.05, 1.95),
+      -2.0, -24, 0.22
+    );
+    rulesCard.userData.hotspot = 2;
     const archivistParts = createFigure({ accent: 0x2457e6, mint: 0x4f7cff, scale: 0.92 });
     const archivist = archivistParts.root;
-    archivist.position.set(-2.4, 0, -22.5);
-    archivist.visible = false;
+    archivist.position.set(-3.4, 0, -22.4); archivist.visible = false;
     scene.add(archivist);
 
-    addFloor(-36, 0x14b87a);
-    // Glowing connector between stations
-    {
-      const path = new THREE.Mesh(
-        new THREE.BoxGeometry(8.2, 0.06, 0.55),
-        new THREE.MeshStandardMaterial({
-          color: 0x152238, metalness: 0.5, roughness: 0.3,
-          emissive: 0x2457e6, emissiveIntensity: 0.35,
-        })
-      );
-      path.position.set(0, 0.08, -36);
-      scene.add(path);
-      [-2.6, 0, 2.6].forEach((x, i) => {
-        const node = new THREE.Mesh(
-          new THREE.SphereGeometry(0.12, 16, 16),
-          new THREE.MeshStandardMaterial({
-            color: i === 0 ? 0x2457e6 : i === 1 ? 0x14b87a : 0xf0a202,
-            emissive: i === 0 ? 0x2457e6 : i === 1 ? 0x14b87a : 0xf0a202,
-            emissiveIntensity: 0.7,
-          })
-        );
-        node.position.set(x, 0.22, -36);
-        scene.add(node);
-      });
-    }
+    addFloorPad(-36, 0x14b87a);
+    const pipe = new THREE.Mesh(
+      new THREE.BoxGeometry(8.4, 0.08, 0.7),
+      new THREE.MeshStandardMaterial({ color: 0x152238, metalness: 0.55, roughness: 0.28, emissive: 0x2457e6, emissiveIntensity: 0.4 })
+    );
+    pipe.position.set(0, 0.06, -36); scene.add(pipe);
+    const stations = [];
     [
-      { num: '01', title: 'SET RULES', c: 'Save Agent Instructions before the agent builds.', color: 0x2457e6, x: -3.2 },
+      { num: '01', title: 'SET RULES', c: 'Save Agent Instructions before the agent builds.', color: 0x2457e6, x: -3.35 },
       { num: '02', title: 'BUILD', c: 'Approved CMS + existing design system only.', color: 0x14b87a, x: 0 },
-      { num: '03', title: 'REVIEW', c: 'Human sign-off before anything goes live.', color: 0xf0a202, x: 3.2 },
+      { num: '03', title: 'REVIEW', c: 'Human sign-off before anything goes live.', color: 0xf0a202, x: 3.35 },
     ].forEach((s, i) => {
-      const station = makeStation({ num: s.num, title: s.title, body: s.c, color: s.color, x: s.x, z: -36 });
-      station.userData.float = i;
-      station.userData.lightAt = 0.1 + i * 0.28;
-      stations.push(station);
-      scene.add(station);
+      const st = new THREE.Group();
+      const hex = '#' + s.color.toString(16).padStart(6, '0');
+      const card = makePlacard(makeTextPanel(s.title, s.c, hex, { badge: s.num, footer: 'Rules → Build → Review' }), s.color, 2.55, 1.8);
+      card.position.set(0, 1.15, 0.05);
+      st.add(card);
+      const numMesh = makeBigNum(s.num, s.color); numMesh.position.set(0, 3.35, 0.15); st.add(numMesh);
+      const plinth = new THREE.Mesh(new THREE.CylinderGeometry(1.05, 1.28, 0.32, 40), new THREE.MeshStandardMaterial({ color: 0x0c1324, metalness: 0.6, roughness: 0.26 }));
+      plinth.position.y = 0.16; st.add(plinth);
+      const halo = new THREE.Mesh(new THREE.RingGeometry(1.12, 1.58, 64), new THREE.MeshStandardMaterial({ color: s.color, emissive: s.color, emissiveIntensity: 0.5, side: THREE.DoubleSide, transparent: true, opacity: 0.85 }));
+      halo.rotation.x = -Math.PI / 2; halo.position.y = 0.34; st.add(halo);
+      const arch = new THREE.Mesh(new THREE.TorusGeometry(1.4, 0.05, 12, 48, Math.PI), new THREE.MeshStandardMaterial({ color: s.color, emissive: s.color, emissiveIntensity: 0.55 }));
+      arch.position.set(0, 1.1, -0.55); arch.rotation.z = Math.PI; st.add(arch);
+      const lamp = new THREE.PointLight(s.color, 1.0, 7.5); lamp.position.set(0, 2.7, 0.55); st.add(lamp);
+      st.position.set(s.x, 0, -36);
+      st.userData = { kind: 'station', pick: true, hover: 0, float: i, halo, lamp, card, numMesh, arch, color: s.color, hotspot: 3 };
+      pickables.push(st); animators.push(st); stations.push(st); scene.add(st);
     });
 
-    addFloor(-48);
+    addFloorPad(-48, 0x14b87a);
+    const approvedCards = [];
     APPROVED.forEach((a, i) => {
-      const tex = makeTextPanel(a.label, a.claim, a.color);
-      const card = makeCard(tex, parseInt(a.color.slice(1), 16), 2.25, 1.5);
-      card.position.set(-2.6 + i * 2.6, 1.45, -48);
-      card.userData.float = i + 3;
-      card.userData.baseY = 1.45;
+      const card = placePlacard(
+        makePlacard(makeTextPanel(a.label, a.claim, a.color), parseInt(a.color.slice(1), 16), 2.35, 1.55),
+        -3.1 + i * 3.1, -48.4, (i - 1) * -0.18
+      );
+      card.userData.hotspot = 4; card.userData.float = i;
       approvedCards.push(card);
-      scene.add(card);
     });
 
-    addFloor(-60);
-    {
-      const tex = makeTextPanel('NEEDS APPROVAL', 'Cuts campaign launch time by 80%. Held—no approved source.', '#f0a202');
-      const card = makeCard(tex, 0xf0a202, 3.0, 1.85);
-      card.position.set(0, 1.5, -60);
-      scene.add(card);
-      [-2.1, 2.1].forEach((x) => {
-        const post = new THREE.Mesh(
-          new THREE.BoxGeometry(0.12, 2.3, 0.12),
-          new THREE.MeshStandardMaterial({ color: 0xf0a202, emissive: 0xf0a202, emissiveIntensity: 0.28 })
-        );
-        post.position.set(x, 1.15, -58.5);
-        barrierPosts.push(post);
-        scene.add(post);
-      });
-      const bar = new THREE.Mesh(
-        new THREE.BoxGeometry(4.2, 0.08, 0.08),
-        new THREE.MeshStandardMaterial({ color: 0xf0a202, emissive: 0xf0a202, emissiveIntensity: 0.35, transparent: true, opacity: 0.85 })
-      );
-      bar.position.set(0, 1.7, -58.5);
-      bar.userData.barrier = true;
-      barrierPosts.push(bar);
-      scene.add(bar);
-    }
-
-    // Auditor — Held room accent
+    addFloorPad(-60, 0xf0a202);
+    const heldCard = placePlacard(
+      makePlacard(makeTextPanel('NEEDS APPROVAL', 'Cuts campaign launch time by 80%. Held—no approved source.', '#f0a202'), 0xf0a202, 3.05, 1.9),
+      0.2, -60.4, 0
+    );
+    heldCard.userData.hotspot = 5;
+    const barrierPosts = [];
+    const glass = new THREE.Mesh(
+      new THREE.BoxGeometry(4.6, 2.2, 0.06),
+      new THREE.MeshStandardMaterial({ color: 0xf0a202, emissive: 0xf0a202, emissiveIntensity: 0.18, transparent: true, opacity: 0.18, metalness: 0.2, roughness: 0.15 })
+    );
+    glass.position.set(0, 1.2, -58.35); glass.userData.barrier = true;
+    scene.add(glass); barrierPosts.push(glass);
+    [-2.2, 2.2].forEach((x) => {
+      const post = new THREE.Mesh(new THREE.BoxGeometry(0.14, 2.4, 0.14), new THREE.MeshStandardMaterial({ color: 0xf0a202, emissive: 0xf0a202, emissiveIntensity: 0.35, metalness: 0.5 }));
+      post.position.set(x, 1.2, -58.35); scene.add(post); barrierPosts.push(post);
+    });
     const auditorParts = createFigure({ accent: 0xf0a202, mint: 0xff5a45, scale: 0.95 });
     const auditor = auditorParts.root;
-    auditor.position.set(2.35, 0, -58.2);
-    auditor.visible = false;
+    auditor.position.set(2.6, 0, -58.1); auditor.visible = false;
     scene.add(auditor);
 
-    addFloor(-72);
-    {
-      const tex = makeTextPanel('HUMAN DECISION', 'Build from what you know is true. Inspect the CMS ledger on the page.', '#14b87a');
-      const card = makeCard(tex, 0x14b87a, 3.1, 1.8);
-      card.position.set(0, 1.5, -72);
-      scene.add(card);
-      humanPortal = new THREE.Mesh(
-        new THREE.TorusGeometry(1.35, 0.045, 16, 72),
-        new THREE.MeshStandardMaterial({ color: 0x14b87a, emissive: 0x14b87a, emissiveIntensity: 0.42 })
-      );
-      humanPortal.position.set(0, 1.5, -74);
-      humanPortal.userData.baseScale = 1;
-      scene.add(humanPortal);
-      const portalGlow = new THREE.PointLight(0x14b87a, 0.35, 8);
-      portalGlow.position.set(0, 1.5, -73);
-      portalGlow.userData.portalLight = true;
-      scene.add(portalGlow);
-      humanPortal.userData.light = portalGlow;
-    }
+    addFloorPad(-72, 0x14b87a);
+    const humanCard = placePlacard(
+      makePlacard(makeTextPanel('HUMAN DECISION', 'Build from what you know is true. Inspect the CMS ledger on the page.', '#14b87a'), 0x14b87a, 3.1, 1.8),
+      -2.4, -71.2, 0.3
+    );
+    humanCard.userData.hotspot = 6;
+    const humanPortal = new THREE.Group();
+    const torus = new THREE.Mesh(new THREE.TorusGeometry(1.45, 0.07, 18, 80), new THREE.MeshStandardMaterial({ color: 0x14b87a, emissive: 0x14b87a, emissiveIntensity: 0.55, metalness: 0.45 }));
+    const inner = new THREE.Mesh(new THREE.CircleGeometry(1.32, 48), new THREE.MeshStandardMaterial({ color: 0x0b1a16, emissive: 0x14b87a, emissiveIntensity: 0.2, transparent: true, opacity: 0.45, side: THREE.DoubleSide }));
+    inner.position.z = -0.02;
+    const pLight = new THREE.PointLight(0x14b87a, 0.6, 10);
+    humanPortal.add(torus, inner, pLight);
+    humanPortal.position.set(0, 1.55, -74.2);
+    humanPortal.userData = { kind: 'portal', pick: true, hover: 0, open: 0, torus, inner, light: pLight, hotspot: 6 };
+    pickables.push(humanPortal); scene.add(humanPortal);
 
-    const path = ROOMS.map((r, i) => ({
-      cam: new THREE.Vector3(0, i === 3 ? 2.65 : 2.15, r.z + (i === 3 ? 8.4 : 7.6)),
-      look: new THREE.Vector3(0, i === 3 ? 1.15 : 1.35, r.z - (i === 3 ? 0.4 : 1.0)),
-      scout: new THREE.Vector3(1.4, 0, r.z + 3.4),
-      scoutLead: new THREE.Vector3(0.35, 0, r.z - 1.8),
-    }));
-
-    function easeInOut(t) {
-      return t * t * (3 - 2 * t);
-    }
-
-    function sampleAt(t) {
-      const clamped = THREE.MathUtils.clamp(t, 0, lastRoom);
-      const i = Math.min(Math.floor(clamped), lastRoom - 1);
-      const f = easeInOut(clamped - i);
-      return {
-        cam: path[i].cam.clone().lerp(path[i + 1].cam, f),
-        look: path[i].look.clone().lerp(path[i + 1].look, f),
-        scout: path[i].scout.clone().lerp(path[i + 1].scout, f),
-      };
-    }
+    const stands = ROOMS.map((r) => new THREE.Vector3(r.x, 0, r.z + 3.2));
 
     const followBtn = document.getElementById('follow');
     const prevBtn = document.getElementById('prev');
@@ -761,225 +633,115 @@
     const signalBtn = document.getElementById('signal');
     const eqBars = [...document.querySelectorAll('#eq i')];
 
-    const HELD_ROOM = 5;
-    const HUMAN_ROOM = 6;
-    const ROOM_BED = [
-      [220.00, 330.00],
-      [233.08, 311.13],
-      [220.00, 329.63],
-      [196.00, 293.66],
-      [261.63, 392.00],
-      [220.00, 311.13],
-      [174.61, 220.00],
-    ];
-    const BED_GAIN = [0.026, 0.020, 0.024, 0.022, 0.030, 0.018, 0.007];
-
-    const keyBase = key.intensity;
-    const blueBase = blue.intensity;
-    const fillBase = fill.intensity;
-    let bloom = 0;
-    let humBloomed = false;
-    let tickAcc = 0;
-    let pageQuiet = false;
-    let worldPaused = false;
-
     const Signal = {
-      enabled: false,
-      ctx: null,
-      master: null,
-      bedGain: null,
-      humGain: null,
-      sfxGain: null,
-      analyser: null,
-      freqData: null,
-      oscA: null,
-      oscB: null,
-      humA: null,
-      humB: null,
-      bedRoom: 0,
-
+      enabled: false, ctx: null, master: null, bedGain: null, humGain: null, sfxGain: null,
+      analyser: null, freqData: null, oscA: null, oscB: null,
       unlock() {
-        if (this.ctx) {
-          if (this.ctx.state === 'suspended') this.ctx.resume();
-          return true;
-        }
+        if (this.ctx) { if (this.ctx.state === 'suspended') this.ctx.resume(); return true; }
         const AC = window.AudioContext || window.webkitAudioContext;
         if (!AC) return false;
         const ctx = new AC();
-        const master = ctx.createGain();
-        master.gain.value = 0;
-        const analyser = ctx.createAnalyser();
-        analyser.fftSize = 32;
-        analyser.smoothingTimeConstant = 0.72;
-        master.connect(analyser);
-        analyser.connect(ctx.destination);
-
-        const bedGain = ctx.createGain();
-        bedGain.gain.value = 0;
-        bedGain.connect(master);
-        const oscA = ctx.createOscillator();
-        const oscB = ctx.createOscillator();
-        oscA.type = 'sine';
-        oscB.type = 'sine';
-        oscA.frequency.value = ROOM_BED[0][0];
-        oscB.frequency.value = ROOM_BED[0][1];
-        oscB.detune.value = 6;
-        oscA.connect(bedGain);
-        oscB.connect(bedGain);
-        oscA.start();
-        oscB.start();
-
-        const humGain = ctx.createGain();
-        humGain.gain.value = 0;
-        const humFilter = ctx.createBiquadFilter();
-        humFilter.type = 'lowpass';
-        humFilter.frequency.value = 420;
-        humFilter.Q.value = 0.7;
-        humGain.connect(master);
-        const humA = ctx.createOscillator();
-        const humB = ctx.createOscillator();
-        humA.type = 'sine';
-        humB.type = 'sine';
-        humA.frequency.value = 82;
-        humB.frequency.value = 123;
-        humA.connect(humFilter);
-        humB.connect(humFilter);
-        humFilter.connect(humGain);
-        humA.start();
-        humB.start();
-
-        const sfxGain = ctx.createGain();
-        sfxGain.gain.value = 0.7;
-        sfxGain.connect(master);
-
-        this.ctx = ctx;
-        this.master = master;
-        this.bedGain = bedGain;
-        this.humGain = humGain;
-        this.sfxGain = sfxGain;
-        this.analyser = analyser;
-        this.freqData = new Uint8Array(analyser.frequencyBinCount);
-        this.oscA = oscA;
-        this.oscB = oscB;
-        this.humA = humA;
-        this.humB = humB;
+        const master = ctx.createGain(); master.gain.value = 0;
+        const analyser = ctx.createAnalyser(); analyser.fftSize = 32; analyser.smoothingTimeConstant = 0.72;
+        master.connect(analyser); analyser.connect(ctx.destination);
+        const bedGain = ctx.createGain(); bedGain.gain.value = 0; bedGain.connect(master);
+        const oscA = ctx.createOscillator(); const oscB = ctx.createOscillator();
+        oscA.type = 'sine'; oscB.type = 'sine'; oscA.frequency.value = 220; oscB.frequency.value = 330; oscB.detune.value = 6;
+        oscA.connect(bedGain); oscB.connect(bedGain); oscA.start(); oscB.start();
+        const humGain = ctx.createGain(); humGain.gain.value = 0;
+        const humFilter = ctx.createBiquadFilter(); humFilter.type = 'lowpass'; humFilter.frequency.value = 420;
+        const humA = ctx.createOscillator(); const humB = ctx.createOscillator();
+        humA.type = 'sine'; humB.type = 'sine'; humA.frequency.value = 82; humB.frequency.value = 123;
+        humA.connect(humFilter); humB.connect(humFilter); humFilter.connect(humGain); humGain.connect(master);
+        humA.start(); humB.start();
+        const sfxGain = ctx.createGain(); sfxGain.gain.value = 0.7; sfxGain.connect(master);
+        Object.assign(this, { ctx, master, bedGain, humGain, sfxGain, analyser, oscA, oscB, freqData: new Uint8Array(analyser.frequencyBinCount) });
         return true;
       },
-
       setEnabled(on) {
-        if (on) {
-          if (!this.unlock()) return;
-          this.enabled = true;
-          this.ctx.resume();
-          this.setRoom(room, true);
-          this.duck(true);
-        } else {
-          this.enabled = false;
-          this.duck(true);
-        }
+        if (on) { if (!this.unlock()) return; this.enabled = true; this.ctx.resume(); this.setRoom(room, true); this.duck(true); }
+        else { this.enabled = false; this.duck(true); }
         signalBtn.setAttribute('aria-pressed', this.enabled ? 'true' : 'false');
         signalBtn.textContent = this.enabled ? 'Signal on' : 'Signal off';
       },
-
       duck(immediate = false) {
         if (!this.master) return;
         const silent = !this.enabled || worldPaused || pageQuiet || document.hidden;
         let target = silent ? 0 : 1;
-        if (!silent && room === HUMAN_ROOM && !transitioning) target = 0.28;
+        if (!silent && room === HUMAN_ROOM && !walking) target = 0.28;
         const t = this.ctx.currentTime;
         this.master.gain.cancelScheduledValues(t);
         this.master.gain.setTargetAtTime(target, t, immediate ? 0.04 : 0.18);
-        if (silent && this.humGain) {
-          this.humGain.gain.setTargetAtTime(0, t, 0.08);
-        }
+        if (silent && this.humGain) this.humGain.gain.setTargetAtTime(0, t, 0.08);
       },
-
       setRoom(idx, snap = false) {
         if (!this.oscA) return;
-        this.bedRoom = idx;
         const pair = ROOM_BED[idx] || ROOM_BED[0];
         const g = BED_GAIN[idx] ?? 0.02;
-        const t = this.ctx.currentTime;
-        const tau = snap ? 0.04 : 0.35;
+        const t = this.ctx.currentTime, tau = snap ? 0.04 : 0.35;
         this.oscA.frequency.setTargetAtTime(pair[0], t, tau);
         this.oscB.frequency.setTargetAtTime(pair[1], t, tau);
         this.bedGain.gain.setTargetAtTime(this.enabled ? g : 0, t, tau);
       },
-
       setHum(amount) {
         if (!this.humGain || !this.enabled || worldPaused || pageQuiet) return;
-        const t = this.ctx.currentTime;
-        const g = Math.max(0, Math.min(0.012, amount * 0.012));
-        this.humGain.gain.setTargetAtTime(g, t, 0.12);
+        this.humGain.gain.setTargetAtTime(Math.max(0, Math.min(0.012, amount * 0.012)), this.ctx.currentTime, 0.12);
       },
-
-      tone(freq, when, peak, dur, type = 'sine') {
+      tone(freq, when, peak, dur) {
         if (!this.enabled || !this.ctx || worldPaused || pageQuiet) return;
         try {
           const t0 = this.ctx.currentTime + when;
-          const osc = this.ctx.createOscillator();
-          const g = this.ctx.createGain();
-          osc.type = type;
-          osc.frequency.value = freq;
+          const osc = this.ctx.createOscillator(); const g = this.ctx.createGain();
+          osc.type = 'sine'; osc.frequency.value = freq;
           g.gain.setValueAtTime(0.0001, t0);
           g.gain.exponentialRampToValueAtTime(peak, t0 + 0.018);
           g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
-          osc.connect(g);
-          g.connect(this.sfxGain);
-          osc.start(t0);
-          osc.stop(t0 + dur + 0.02);
+          osc.connect(g); g.connect(this.sfxGain); osc.start(t0); osc.stop(t0 + dur + 0.02);
         } catch (_) {}
       },
-
-      tick() {
-        this.tone(988, 0, 0.045, 0.055);
-      },
-
+      tick() { this.tone(988, 0, 0.04, 0.05); },
       arrive(idx) {
-        if (idx === HELD_ROOM) {
-          this.tone(220, 0, 0.07, 0.28);
-          this.tone(311.13, 0.06, 0.055, 0.32);
-          return;
-        }
-        this.tone(392, 0, 0.06, 0.2);
-        this.tone(588, 0.07, 0.05, 0.24);
+        if (idx === HELD_ROOM) { this.tone(220, 0, 0.07, 0.28); this.tone(311.13, 0.06, 0.055, 0.32); return; }
+        this.tone(392, 0, 0.06, 0.2); this.tone(588, 0.07, 0.05, 0.24);
       },
-
       readEq() {
-        if (!this.analyser || !this.enabled || !eqBars.length) {
-          eqBars.forEach((el) => { el.style.height = '3px'; });
-          return;
-        }
+        if (!this.analyser || !this.enabled) { eqBars.forEach((el) => { el.style.height = '3px'; }); return; }
         this.analyser.getByteFrequencyData(this.freqData);
         const n = this.freqData.length;
-        [0.15, 0.4, 0.7].forEach((p, i) => {
-          const v = this.freqData[Math.min(n - 1, Math.floor(n * p))] / 255;
-          eqBars[i].style.height = `${3 + v * 11}px`;
-        });
+        [0.15, 0.4, 0.7].forEach((p, i) => { eqBars[i].style.height = `${3 + (this.freqData[Math.min(n - 1, Math.floor(n * p))] / 255) * 11}px`; });
       },
     };
 
-    function bloomTick(amount = 0.85) {
-      bloom = Math.max(bloom, reduced ? amount * 0.35 : amount);
-      pulseFlash();
+    function pulseFlash() { flash.classList.add('on'); setTimeout(() => flash.classList.remove('on'), 280); }
+    function bloomTick(amount = 0.85) { bloom = Math.max(bloom, reduced ? amount * 0.35 : amount); pulseFlash(); }
+
+    function clampDest(v) {
+      v.x = THREE.MathUtils.clamp(v.x, X_MIN, X_MAX);
+      v.z = THREE.MathUtils.clamp(v.z, Z_MIN, Z_MAX);
+      v.y = 0;
+      return v;
     }
 
-    ROOMS.forEach((r, i) => {
-      const b = document.createElement('button');
-      b.type = 'button';
-      b.title = r.title;
-      b.addEventListener('click', () => goToRoom(i, true));
-      chapters.appendChild(b);
-    });
+    function spawnClick(x, z) {
+      const r = clickRings.find((c) => c.userData.life <= 0) || clickRings[0];
+      r.position.set(x, 0.05, z); r.userData.life = 1; r.scale.setScalar(0.4); r.visible = true;
+    }
+
+    function setDest(x, z, announce = true) {
+      clampDest(scoutDest.set(x, 0, z));
+      destMark.position.set(scoutDest.x, 0.04, scoutDest.z);
+      spawnClick(scoutDest.x, scoutDest.z);
+      if (announce) {
+        document.getElementById('scoutLine').textContent = 'On my way — keep looking, I’ll take this path.';
+        speechEl.classList.add('leading');
+      }
+    }
 
     function enterWorld() {
       const gate = document.getElementById('gate');
       if (!gate.hidden) {
         gate.classList.add('is-leaving');
-        setTimeout(() => {
-          gate.hidden = true;
-          gate.classList.remove('is-leaving');
-        }, reduced ? 0 : 380);
+        setTimeout(() => { gate.hidden = true; gate.classList.remove('is-leaving'); }, reduced ? 0 : 380);
       }
       running = true;
       if (Signal.enabled && Signal.ctx && Signal.ctx.state === 'suspended') Signal.ctx.resume();
@@ -990,420 +752,412 @@
       document.getElementById('roomLabel').textContent = r.label;
       document.getElementById('roomTitle').textContent = r.title;
       document.getElementById('roomBody').textContent = r.body;
-      const leading = transitioning && phase === 'scout-lead';
-      document.getElementById('scoutLine').textContent = leading ? 'This way — keep up with me.' : r.scout;
-      speechEl.classList.toggle('leading', leading);
+      if (!walking) {
+        document.getElementById('scoutLine').textContent = r.scout;
+        speechEl.classList.remove('leading');
+      }
       document.getElementById('progress').style.width = `${(room / lastRoom) * 100}%`;
       [...chapters.children].forEach((el, i) => {
         if (i === room) el.setAttribute('aria-current', 'true');
         else el.removeAttribute('aria-current');
       });
-      followBtn.textContent = room >= lastRoom && !transitioning ? 'Replay journey' : 'Follow Scout →';
-      followBtn.disabled = transitioning;
-      prevBtn.disabled = transitioning || room <= 0;
-    }
-
-    function pulseFlash() {
-      flash.classList.add('on');
-      setTimeout(() => flash.classList.remove('on'), 280);
+      followBtn.textContent = room >= lastRoom ? 'Walk to Welcome' : 'Next station →';
+      prevBtn.disabled = room <= 0 && !walking;
     }
 
     function triggerRoomBeat(idx) {
-      beatT = 0;
-      beatActive = true;
+      beatT = 0; beatActive = true;
       archivist.visible = idx === 2;
       auditor.visible = idx === 5;
       if (idx === 1) riskPulse = 1;
-      if (idx === 3) stations.forEach((s, i) => { s.userData.lit = false; s.userData.lightAt = 0.15 + i * 0.28; });
-      if (idx === 4) approvedCards.forEach((c, i) => { c.userData.lift = 0; c.userData.liftDelay = i * 0.12; });
-      if (idx === 6 && humanPortal) {
-        humanPortal.scale.setScalar(1);
-        humanPortal.userData.open = 0;
-      }
+      if (idx === 3) stations.forEach((s) => { s.userData.lit = false; });
       Signal.setRoom(idx);
       if (idx !== 0) Signal.arrive(idx);
-      bloomTick(idx === 0 ? 0.32 : idx === HELD_ROOM ? 0.55 : 0.8);
+      bloomTick(idx === 0 ? 0.28 : idx === HELD_ROOM ? 0.5 : 0.75);
       Signal.duck();
+      updateHud();
     }
 
-    function goToRoom(next, instant = false) {
+    function goToRoom(i, instant = false) {
       enterWorld();
-      const dest = ((next % ROOMS.length) + ROOMS.length) % ROOMS.length;
-      if (dest === room && !transitioning && !instant) {
-        updateHud();
-        return;
-      }
+      const dest = ((i % ROOMS.length) + ROOMS.length) % ROOMS.length;
+      const p = stands[dest];
       if (reduced || instant) {
-        room = dest;
-        camT = dest;
-        scoutT = dest;
-        transitioning = false;
-        phase = 'idle';
-        targetYaw = 0;
-        targetPitch = 0;
-        triggerRoomBeat(room);
-        updateHud();
-        return;
+        scoutPos.copy(p); scoutDest.copy(p); scout.position.copy(p);
+        room = dest; triggerRoomBeat(dest); return;
       }
-      fromRoom = room;
-      toRoom = dest;
-      phaseT = 0;
-      phase = 'scout-lead';
-      transitioning = true;
-      humBloomed = false;
-      tickAcc = 0;
-      Signal.setRoom(dest);
-      updateHud();
+      setDest(p.x, p.z);
     }
 
-    function followScout() {
-      enterWorld();
-      if (transitioning) return;
-      if (room >= lastRoom) {
-        goToRoom(0, false);
-        return;
-      }
-      goToRoom(room + 1, false);
+    function nearestRoom() {
+      let best = 0, dBest = 1e9;
+      stands.forEach((p, i) => {
+        const d = scoutPos.distanceTo(p);
+        if (d < dBest) { dBest = d; best = i; }
+      });
+      return best;
     }
 
-    function goBack() {
-      enterWorld();
-      if (transitioning || room <= 0) return;
-      goToRoom(room - 1, false);
-    }
-
-    followBtn.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); followScout(); });
-    signalBtn.addEventListener('click', (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      enterWorld();
-      Signal.setEnabled(!Signal.enabled);
+    ROOMS.forEach((r, i) => {
+      const b = document.createElement('button');
+      b.type = 'button'; b.title = r.title;
+      b.addEventListener('click', () => goToRoom(i, false));
+      chapters.appendChild(b);
     });
-    prevBtn.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); goBack(); });
+
+    followBtn.addEventListener('click', (e) => { e.preventDefault(); goToRoom(room >= lastRoom ? 0 : room + 1); });
+    prevBtn.addEventListener('click', (e) => { e.preventDefault(); if (room > 0) goToRoom(room - 1); });
+    signalBtn.addEventListener('click', (e) => { e.preventDefault(); enterWorld(); Signal.setEnabled(!Signal.enabled); });
     document.getElementById('enter').addEventListener('click', (e) => {
-      e.preventDefault();
-      enterWorld();
-      triggerRoomBeat(0);
-      updateHud();
+      e.preventDefault(); enterWorld(); triggerRoomBeat(0); updateHud();
     });
 
-    let wheelAcc = 0;
-    if (renderer) {
-      renderer.domElement.addEventListener('wheel', (e) => {
-        e.preventDefault();
-        if (!running || transitioning) return;
-        wheelAcc += e.deltaY;
-        if (wheelAcc > 80) { wheelAcc = 0; followScout(); }
-        else if (wheelAcc < -80) { wheelAcc = 0; goBack(); }
-      }, { passive: false });
+    const raycaster = new THREE.Raycaster();
+    const pointer = new THREE.Vector2();
+    const hitList = [ground, ...pickables];
 
+    function ndc(e) {
+      pointer.set((e.clientX / innerWidth) * 2 - 1, -(e.clientY / innerHeight) * 2 + 1);
+    }
+
+    function pickAt(e) {
+      if (!renderer) return null;
+      ndc(e);
+      raycaster.setFromCamera(pointer, camera);
+      const hits = raycaster.intersectObjects(hitList, true);
+      if (!hits.length) return null;
+      let obj = hits[0].object;
+      while (obj && !obj.userData.pick && !obj.userData.ground) obj = obj.parent;
+      return { obj, point: hits[0].point };
+    }
+
+    function walkInFront(obj) {
+      const p = new THREE.Vector3();
+      obj.getWorldPosition(p);
+      const dir = new THREE.Vector3().subVectors(scoutPos, p); dir.y = 0;
+      if (dir.lengthSq() < 0.01) dir.set(0, 0, 2);
+      dir.normalize().multiplyScalar(2.4);
+      setDest(p.x + dir.x, p.z + dir.z);
+      if (obj.userData.press != null) obj.userData.press = 1;
+    }
+
+    if (renderer) {
       renderer.domElement.addEventListener('pointerdown', (e) => {
         if (!running) return;
-        dragging = true;
-        lastX = e.clientX; lastY = e.clientY;
-        document.body.classList.add('is-dragging');
+        downX = e.clientX; downY = e.clientY; dragging = false;
         renderer.domElement.setPointerCapture(e.pointerId);
       });
       renderer.domElement.addEventListener('pointermove', (e) => {
-        if (!dragging || !running) return;
-        targetYaw = THREE.MathUtils.clamp(targetYaw - (e.clientX - lastX) * 0.0032, -0.65, 0.65);
-        targetPitch = THREE.MathUtils.clamp(targetPitch - (e.clientY - lastY) * 0.0022, -0.32, 0.32);
-        lastX = e.clientX; lastY = e.clientY;
+        pointerX = e.clientX; pointerY = e.clientY;
+        if (!running) return;
+        if (e.buttons) {
+          const dx = e.clientX - downX, dy = e.clientY - downY;
+          if (!dragging && Math.hypot(dx, dy) > 7) {
+            dragging = true; document.body.classList.add('is-dragging');
+          }
+          if (dragging) {
+            targetYaw -= (e.movementX || 0) * 0.0055;
+            targetPitch = THREE.MathUtils.clamp(targetPitch + (e.movementY || 0) * 0.0038, 0.18, 0.85);
+            downX = e.clientX; downY = e.clientY;
+          }
+        }
       });
-      function endDrag(e) {
-        dragging = false;
-        document.body.classList.remove('is-dragging');
+      function endPtr(e) {
+        if (running && !dragging) {
+          const hit = pickAt(e);
+          if (hit) {
+            enterWorld();
+            if (hit.obj && hit.obj.userData.pick) walkInFront(hit.obj);
+            else setDest(hit.point.x, hit.point.z);
+          }
+        }
+        dragging = false; document.body.classList.remove('is-dragging');
         try { renderer.domElement.releasePointerCapture(e.pointerId); } catch (_) {}
       }
-      renderer.domElement.addEventListener('pointerup', endDrag);
-      renderer.domElement.addEventListener('pointercancel', endDrag);
+      renderer.domElement.addEventListener('pointerup', endPtr);
+      renderer.domElement.addEventListener('pointercancel', endPtr);
+      renderer.domElement.addEventListener('wheel', (e) => {
+        e.preventDefault();
+        if (!running) return;
+        targetPitch = THREE.MathUtils.clamp(targetPitch + e.deltaY * 0.0006, 0.18, 0.85);
+      }, { passive: false });
     }
 
     addEventListener('keydown', (e) => {
-      if (e.key === 'ArrowDown' || e.key === ' ') { e.preventDefault(); followScout(); }
-      if (e.key === 'ArrowUp') { e.preventDefault(); goBack(); }
-      if (e.key >= '1' && e.key <= '7') goToRoom(Number(e.key) - 1, true);
+      const k = e.key.toLowerCase();
+      if (k in keys) { keys[k] = 1; enterWorld(); e.preventDefault(); }
+      if (e.key === ' ') { e.preventDefault(); goToRoom(room >= lastRoom ? 0 : room + 1); }
+      if (e.key === 'ArrowUp') { e.preventDefault(); if (room > 0) goToRoom(room - 1); }
+      if (e.key === 'ArrowDown') { e.preventDefault(); goToRoom(room >= lastRoom ? 0 : room + 1); }
+      if (e.key >= '1' && e.key <= '7') goToRoom(Number(e.key) - 1, reduced);
     });
+    addEventListener('keyup', (e) => { const k = e.key.toLowerCase(); if (k in keys) keys[k] = 0; });
 
     window.addEventListener('message', (e) => {
-      if (e.data === 'pp-pause') {
-        running = false;
-        worldPaused = true;
-        Signal.duck(true);
-      }
+      if (e.data === 'pp-pause') { running = false; worldPaused = true; Signal.duck(true); }
       if (e.data === 'pp-resume' && document.getElementById('gate').hidden) {
-        running = true;
-        worldPaused = false;
-        if (Signal.enabled && Signal.ctx) Signal.ctx.resume();
-        Signal.duck();
+        running = true; worldPaused = false; if (Signal.enabled && Signal.ctx) Signal.ctx.resume(); Signal.duck();
       }
-      if (e.data === 'pp-page-quiet') {
-        pageQuiet = true;
-        Signal.duck(true);
-      }
-      if (e.data === 'pp-page-loud') {
-        pageQuiet = false;
-        Signal.duck();
-      }
-      if (e.data === 'pp-follow') followScout();
+      if (e.data === 'pp-page-quiet') { pageQuiet = true; Signal.duck(true); }
+      if (e.data === 'pp-page-loud') { pageQuiet = false; Signal.duck(); }
+      if (e.data === 'pp-follow') goToRoom(room >= lastRoom ? 0 : room + 1);
       if (e.data && e.data.type === 'pp-goto' && Number.isFinite(e.data.room)) goToRoom(e.data.room, true);
     });
-
     document.addEventListener('visibilitychange', () => Signal.duck(true));
 
     window.__pp = {
-      follow: followScout,
-      back: goBack,
+      follow: () => goToRoom(room + 1),
+      back: () => goToRoom(room - 1),
       goto: (i) => goToRoom(i, true),
+      walkTo: (x, z) => setDest(x, z),
       signal: (on) => Signal.setEnabled(!!on),
-      state: () => ({
-        room, camT, scoutT, phase, transitioning, running, beatActive,
-        signal: Signal.enabled, pageQuiet, worldPaused, bloom,
-      }),
+      state: () => ({ room, walking, running, signal: Signal.enabled, dest: scoutDest.toArray(), pos: scoutPos.toArray() }),
     };
 
+    const camIdeal = new THREE.Vector3();
+    const lookAt = new THREE.Vector3();
+    const tmp = new THREE.Vector3();
     const clock = new THREE.Clock();
-    const scoutPos = new THREE.Vector3().copy(path[0].scout);
-    const tmpLook = new THREE.Vector3();
+    let lastHot = -1;
 
-    function animateFigures(dt, t) {
-      const walking = phase === 'scout-lead';
-      const walk = walking ? Math.sin(t * 12) : 0;
-      scoutParts.legL.rotation.x = walking ? walk * 0.55 : Math.sin(t * 2) * 0.04;
-      scoutParts.legR.rotation.x = walking ? -walk * 0.55 : Math.sin(t * 2 + 1) * 0.04;
-      scoutParts.armL.rotation.x = walking ? -walk * 0.4 : 0;
-      scoutParts.armR.rotation.z = walking
-        ? -0.25 + Math.sin(t * 10) * 0.2
-        : -0.35 + Math.sin(t * 5) * 0.45;
-      scoutParts.hips.position.y = 0.55 + (walking ? Math.abs(Math.sin(t * 12)) * 0.04 : Math.sin(t * 3.2) * 0.02);
-      scoutParts.tip.position.y = 1.33 + Math.sin(t * 4) * 0.03;
-      scoutParts.visor.material.emissiveIntensity = 0.4 + Math.sin(t * 3) * 0.12;
+    function animateProps(dt, t) {
+      welcomeRing.rotation.z = t * 0.35;
+      welcomeRing.position.y = 0.08 + Math.sin(t * 1.6) * 0.04;
+      welcomeRing.material.emissiveIntensity = 0.45 + Math.sin(t * 2.2) * 0.12;
+      welcomeBits.forEach((b, i) => {
+        const a = b.userData.a + t * 0.7;
+        b.position.set(Math.cos(a) * 1.7, 0.55 + Math.sin(t * 2 + i) * 0.15, Math.sin(a) * 1.7);
+        b.rotation.set(t + i, t * 0.8, t * 0.4);
+        b.scale.setScalar(0.7 + Math.sin(t * 3 + i) * 0.2);
+      });
 
-      if (archivist.visible) {
-        archivistParts.armR.rotation.z = -0.2 + Math.sin(t * 2.2) * 0.15;
-        archivist.rotation.y = Math.sin(t * 0.8) * 0.12 - 0.4;
-        archivistParts.hips.position.y = 0.55 * 0.92 + Math.sin(t * 2.5) * 0.02;
-      }
-      if (auditor.visible) {
-        auditorParts.armR.rotation.z = -0.55 + Math.sin(t * 1.8) * 0.08;
-        auditor.rotation.y = Math.PI + Math.sin(t * 0.6) * 0.08;
-        auditorParts.visor.material.emissiveIntensity = 0.5 + Math.sin(t * 4) * 0.2;
-      }
-    }
-
-    function animateBeats(dt, t) {
-      if (!beatActive && room === 0) {
-        welcomeRing.rotation.z = t * 0.15;
-        welcomeRing.material.emissiveIntensity = 0.35 + Math.sin(t * 2) * 0.08;
-      }
-      if (beatActive) beatT += dt;
-
-      // Welcome ring breathe on enter
-      if (room === 0) {
-        welcomeRing.scale.setScalar(1 + Math.sin(t * 1.8) * 0.03);
-        welcomeRing.material.emissiveIntensity = 0.38 + Math.sin(t * 2.4) * 0.1;
-      }
-
-      // Problem — red pulse / crack lean
-      if (riskCard && (room === 1 || riskPulse > 0)) {
-        riskPulse = Math.max(0, riskPulse - dt * 0.35);
-        const p = room === 1 ? 0.55 + Math.sin(t * 5) * 0.35 : riskPulse;
-        riskCard.rotation.z = Math.sin(t * 6) * 0.04 * p;
-        const rim = riskCard.userData.rim || riskCard.children[1];
-        if (rim && rim.material) rim.material.emissiveIntensity = 0.25 + p * 0.55;
-        riskCard.position.y = riskCard.userData.baseY + Math.sin(t * 7) * 0.03 * p;
-      }
-
-      // Pipeline stations light in sequence
-      if (room === 3) {
-        stations.forEach((s) => {
-          const on = beatT >= (s.userData.lightAt || 0);
-          s.userData.lit = on;
-          const rim = s.userData.rim;
-          const halo = s.userData.halo;
-          const lamp = s.userData.lamp;
-          const target = on ? 0.75 : (s.userData.baseEmissive || 0.2);
-          if (rim) rim.material.emissiveIntensity += (target - rim.material.emissiveIntensity) * Math.min(1, dt * 5);
-          if (halo) {
-            halo.material.emissiveIntensity += ((on ? 0.55 : 0.18) - halo.material.emissiveIntensity) * Math.min(1, dt * 5);
-            halo.scale.setScalar(on ? 1 + Math.sin(t * 2.4 + s.userData.float) * 0.04 : 1);
-          }
-          if (lamp) lamp.intensity += ((on ? 1.15 : 0.2) - lamp.intensity) * Math.min(1, dt * 4);
-          if (s.userData.card) {
-            s.userData.card.position.y = 1.85 + (on ? Math.sin(t * 2 + s.userData.float) * 0.06 : 0);
-          }
-          if (s.userData.numMesh) {
-            s.userData.numMesh.position.y = 3.15 + (on ? Math.sin(t * 2.2 + s.userData.float) * 0.05 : 0);
-            s.userData.numMesh.material.opacity = on ? 1 : 0.55;
-          }
-          if (s.userData.plinthTop) {
-            s.userData.plinthTop.material.emissiveIntensity += ((on ? 0.85 : 0.35) - s.userData.plinthTop.material.emissiveIntensity) * Math.min(1, dt * 5);
-          }
-        });
-      }
-
-      // Approved cards lift
-      if (room === 4) {
-        approvedCards.forEach((c) => {
-          const local = Math.max(0, beatT - (c.userData.liftDelay || 0));
-          const lift = Math.min(1, local / 0.45);
-          c.userData.lift = lift;
-          c.position.y = c.userData.baseY + easeInOut(lift) * 0.35 + Math.sin(t * 0.9 + c.userData.float) * 0.05;
-        });
-      }
-
-      // Held barrier shimmer
-      if (room === 5) {
-        barrierPosts.forEach((p, i) => {
-          if (p.material) {
-            p.material.emissiveIntensity = 0.28 + Math.sin(t * 3 + i) * 0.12;
-            if (p.userData.barrier) p.material.opacity = 0.7 + Math.sin(t * 4) * 0.15;
-          }
-        });
-      }
-
-      // Human portal opens downward cue
-      if (room === 6 && humanPortal) {
-        const open = Math.min(1, beatT / 0.9);
-        humanPortal.userData.open = open;
-        humanPortal.scale.setScalar(1 + open * 0.35);
-        humanPortal.rotation.x = open * 0.55;
-        humanPortal.material.emissiveIntensity = 0.4 + open * 0.35 + Math.sin(t * 3) * 0.08;
-        if (humanPortal.userData.light) {
-          humanPortal.userData.light.intensity = 0.35 + open * 1.1;
+      animators.forEach((g) => {
+        const u = g.userData;
+        if (u.kind === 'placard') {
+          const d = tmp.copy(g.position).setY(0).distanceTo(scoutPos);
+          const near = THREE.MathUtils.clamp(1 - (d - 2.2) / 7, 0, 1);
+          u.unfold += ((reduced ? 1 : near > 0.15 ? 1 : 0.12) - u.unfold) * Math.min(1, dt * 3.2);
+          u.hover += ((u._wantHover || 0) - u.hover) * Math.min(1, dt * 8);
+          u.press += ((0) - u.press) * Math.min(1, dt * 6);
+          const face = Math.atan2(scoutPos.x - g.position.x, scoutPos.z - g.position.z);
+          const yaw = THREE.MathUtils.lerp(u.restRotY, face + Math.PI, near * 0.55);
+          g.rotation.y += (yaw - g.rotation.y) * Math.min(1, dt * 3);
+          g.rotation.x = THREE.MathUtils.lerp(-1.05, -0.04 + u.hover * -0.12, u.unfold);
+          g.position.y = u.standH + (reduced ? 0 : Math.sin(t * 1.3 + g.position.z) * 0.05) + u.hover * 0.16 - u.press * 0.08;
+          g.scale.setScalar(1 + u.hover * 0.06);
+          if (u.glare) u.glare.material.opacity = 0.04 + u.hover * 0.16 + near * 0.06;
+          if (u.lamp) u.lamp.intensity = 0.35 + near * 0.7 + u.hover * 0.4;
+          if (u.rim && u.rim.material) u.rim.material.emissiveIntensity = 0.35 + near * 0.45 + Math.sin(t * 2.5) * 0.08;
         }
-      }
-
-      scene.traverse((obj) => {
-        if (obj.userData.float != null && obj.userData.baseY != null && room !== 4) {
-          obj.position.y = obj.userData.baseY + Math.sin(t * 0.9 + obj.userData.float) * 0.06;
+        if (u.kind === 'station') {
+          const d = tmp.set(g.position.x, 0, g.position.z).distanceTo(scoutPos);
+          const near = THREE.MathUtils.clamp(1 - (d - 1.8) / 6, 0, 1);
+          u.hover += ((u._wantHover || 0) - u.hover) * Math.min(1, dt * 8);
+          g.rotation.y = Math.sin(t * 0.5 + u.float) * 0.06 + u.hover * 0.12;
+          if (u.card) {
+            u.card.userData._wantHover = u.hover;
+            u.card.rotation.y = (g.position.x < 0 ? 0.2 : g.position.x > 0 ? -0.2 : 0);
+          }
+          if (u.halo) {
+            u.halo.material.emissiveIntensity = 0.28 + near * 0.55;
+            u.halo.scale.setScalar(1 + near * 0.08 + Math.sin(t * 2 + u.float) * 0.03);
+            u.halo.rotation.z = t * 0.25 * (u.float % 2 ? 1 : -1);
+          }
+          if (u.arch) { u.arch.rotation.y = Math.sin(t * 0.8 + u.float) * 0.15; u.arch.material.emissiveIntensity = 0.4 + near * 0.4; }
+          if (u.lamp) u.lamp.intensity = 0.45 + near * 1.1;
+          if (u.numMesh) u.numMesh.position.y = 3.35 + Math.sin(t * 2 + u.float) * 0.08 * (0.4 + near);
         }
       });
+
+      if (riskCard && (room === 1 || riskPulse > 0)) {
+        riskPulse = Math.max(0, riskPulse - dt * 0.28);
+        const p = room === 1 ? 0.6 : riskPulse;
+        riskCard.rotation.z = Math.sin(t * 5) * 0.05 * p;
+      }
+      barrierPosts.forEach((p, i) => {
+        if (!p.material) return;
+        p.material.emissiveIntensity = 0.22 + Math.sin(t * 3 + i) * 0.12;
+        if (p.userData.barrier) {
+          p.material.opacity = 0.14 + Math.sin(t * 2.4) * 0.06;
+          p.rotation.y = Math.sin(t * 0.4) * 0.04;
+        }
+      });
+      const openT = room === 6 ? Math.min(1, beatT / 0.85) : 0.2;
+      humanPortal.userData.open += (openT - (humanPortal.userData.open || 0)) * Math.min(1, dt * 3);
+      humanPortal.userData.hover += ((humanPortal.userData._wantHover || 0) - (humanPortal.userData.hover || 0)) * Math.min(1, dt * 8);
+      const open = humanPortal.userData.open;
+      humanPortal.rotation.y = t * 0.25;
+      humanPortal.rotation.x = open * 0.55;
+      humanPortal.scale.setScalar(1 + open * 0.28 + (humanPortal.userData.hover || 0) * 0.08);
+      torus.material.emissiveIntensity = 0.4 + open * 0.45 + Math.sin(t * 3) * 0.1;
+      pLight.intensity = 0.45 + open * 1.2;
+      inner.material.opacity = 0.25 + open * 0.35;
+      inner.rotation.z = t * 0.4;
+
+      floorPads.forEach((pad) => {
+        const d = Math.abs(scoutPos.z - pad.z);
+        const near = THREE.MathUtils.clamp(1 - d / 8, 0, 1);
+        pad.ring.material.emissiveIntensity = 0.18 + near * 0.55;
+        pad.ring.scale.setScalar(1 + near * 0.06);
+      });
+    }
+
+    function hoverPick() {
+      if (!renderer || dragging || !running) {
+        pickables.forEach((p) => { p.userData._wantHover = 0; });
+        document.body.classList.remove('is-pointing');
+        return;
+      }
+      pointer.set((pointerX / innerWidth) * 2 - 1, -(pointerY / innerHeight) * 2 + 1);
+      raycaster.setFromCamera(pointer, camera);
+      const hits = raycaster.intersectObjects(pickables, true);
+      pickables.forEach((p) => { p.userData._wantHover = 0; });
+      let pointing = false;
+      if (hits.length) {
+        let obj = hits[0].object;
+        while (obj && !obj.userData.pick) obj = obj.parent;
+        if (obj) { obj.userData._wantHover = 1; pointing = true; }
+      }
+      document.body.classList.toggle('is-pointing', pointing);
     }
 
     function animate() {
       requestAnimationFrame(animate);
       const dt = Math.min(Math.max(clock.getDelta(), 0.001), 0.05);
       const t = clock.elapsedTime;
+      if (beatActive) beatT += dt;
 
-      if (transitioning) {
-        phaseT += dt;
-        if (phase === 'scout-lead') {
-          const u = Math.min(1, phaseT / 0.7);
-          scoutT = THREE.MathUtils.lerp(fromRoom, toRoom, easeInOut(u));
-          camT = THREE.MathUtils.lerp(fromRoom, fromRoom + (toRoom - fromRoom) * 0.12, easeInOut(Math.min(1, u * 1.2)));
-          if (u >= 1) { phase = 'cam-chase'; phaseT = 0; updateHud(); }
-        } else if (phase === 'cam-chase') {
-          const u = Math.min(1, phaseT / 0.85);
-          camT = THREE.MathUtils.lerp(fromRoom + (toRoom - fromRoom) * 0.12, toRoom, easeInOut(u));
-          scoutT = toRoom;
-          if (u >= 1) {
-            room = toRoom;
-            camT = toRoom;
-            scoutT = toRoom;
-            transitioning = false;
-            phase = 'idle';
-            triggerRoomBeat(room);
-            updateHud();
-          }
-        }
-      } else {
-        camT += (room - camT) * Math.min(1, dt * 8);
-        scoutT += (room - scoutT) * Math.min(1, dt * 8);
+      const fwd = tmp.set(-Math.sin(orbitYaw), 0, -Math.cos(orbitYaw)).normalize();
+      const right = new THREE.Vector3().crossVectors(fwd, new THREE.Vector3(0, 1, 0)).normalize();
+      if (running && (keys.w || keys.a || keys.s || keys.d)) {
+        scoutDest.addScaledVector(fwd, (keys.w - keys.s) * 7.5 * dt);
+        scoutDest.addScaledVector(right, (keys.d - keys.a) * 7.5 * dt);
+        clampDest(scoutDest);
+        destMark.position.set(scoutDest.x, 0.04, scoutDest.z);
       }
 
-      yaw += (targetYaw - yaw) * Math.min(1, dt * 10);
-      pitch += (targetPitch - pitch) * Math.min(1, dt * 10);
-      if (!dragging) {
-        targetYaw *= Math.pow(0.92, dt * 60);
-        targetPitch *= Math.pow(0.92, dt * 60);
-      }
-
-      const camSample = sampleAt(camT);
-      const scoutSample = sampleAt(scoutT);
-
-      camera.position.copy(camSample.cam);
-      camera.position.x += Math.sin(yaw) * 1.7;
-      camera.position.y += pitch * 2.1;
-      camera.position.z += Math.cos(yaw) * 0.35 - 0.2;
-
-      if (phase === 'scout-lead') {
-        tmpLook.copy(scoutPos).add(new THREE.Vector3(0, 1.15, 0));
-        camera.lookAt(tmpLook);
-      } else {
-        camera.lookAt(camSample.look);
-      }
-
-      let desired;
-      if (phase === 'scout-lead') {
-        const leadU = Math.min(1, phaseT / 0.7);
-        desired = path[fromRoom].scout.clone().lerp(path[toRoom].scoutLead, easeInOut(leadU));
-      } else if (phase === 'cam-chase') {
-        const leadU = Math.min(1, phaseT / 0.85);
-        desired = path[toRoom].scoutLead.clone().lerp(path[toRoom].scout, easeInOut(leadU));
-      } else {
-        desired = scoutSample.scout.clone();
-      }
-
-      scoutPos.lerp(desired, Math.min(1, dt * 10));
-      scout.position.copy(scoutPos);
-      const faceZ = phase === 'scout-lead' ? scoutPos.z - 4 : camSample.look.z;
-      scout.lookAt(scout.position.x * 0.15, 1.1, faceZ);
-
-      // Point down toward ledger in human room
-      if (room === 6 && !transitioning) {
-        scoutParts.armR.rotation.x = 0.85 + Math.sin(t * 2) * 0.08;
-        scoutParts.armR.rotation.z = -0.15;
-      }
-
-      animateFigures(dt, t);
-      animateBeats(dt, t);
-
-      if (phase === 'scout-lead' && Signal.enabled && !worldPaused && !pageQuiet) {
+      const to = tmp.copy(scoutDest).sub(scoutPos); to.y = 0;
+      const dist = to.length();
+      walking = dist > 0.12;
+      if (walking) {
+        to.normalize();
+        const step = Math.min(dist, (reduced ? 14 : 5.4) * dt);
+        scoutPos.addScaledVector(to, step);
+        scoutVel.copy(to).multiplyScalar(step / dt);
+        const face = Math.atan2(to.x, to.z);
+        scout.rotation.y += (face - scout.rotation.y) * Math.min(1, dt * 8);
         tickAcc += dt;
-        if (tickAcc >= 0.38) {
-          tickAcc = 0;
-          Signal.tick();
+        if (tickAcc > 0.38) { tickAcc = 0; Signal.tick(); }
+        footAcc += dt;
+        if (footAcc > 0.22) {
+          footAcc = 0;
+          const f = footprints[footI++ % footprints.length];
+          f.position.set(scoutPos.x, 0.03, scoutPos.z); f.userData.life = 1; f.visible = true;
         }
       } else {
-        tickAcc = 0;
+        scoutVel.set(0, 0, 0); tickAcc = 0;
+        if (speechEl.classList.contains('leading')) {
+          speechEl.classList.remove('leading');
+          document.getElementById('scoutLine').textContent = ROOMS[room].scout;
+        }
       }
+      scout.position.copy(scoutPos);
+
+      const nearI = nearestRoom();
+      const nearD = scoutPos.distanceTo(stands[nearI]);
+      if (nearI !== lastHot && nearD < 5.2) {
+        lastHot = nearI; room = nearI; triggerRoomBeat(nearI);
+      } else if (nearD < 6.5) room = nearI;
 
       let approach = 0;
-      if (transitioning && phase === 'cam-chase') {
-        const u = Math.min(1, phaseT / 0.85);
-        approach = easeInOut(Math.max(0, (u - 0.42) / 0.58));
-      } else if (transitioning && phase === 'scout-lead') {
-        const u = Math.min(1, phaseT / 0.7);
-        approach = easeInOut(Math.max(0, (u - 0.72) / 0.28)) * 0.32;
-      } else if (room === HUMAN_ROOM && !transitioning) {
-        approach = (humanPortal && humanPortal.userData.open ? humanPortal.userData.open : 0) * 0.5;
-      }
+      stands.forEach((p) => {
+        const d = scoutPos.distanceTo(p);
+        if (d < 8) approach = Math.max(approach, THREE.MathUtils.clamp(1 - (d - 2) / 6, 0, 1));
+      });
       Signal.setHum(approach);
-      if (approach > 0.82 && !humBloomed) {
-        humBloomed = true;
-        bloomTick(0.5);
+      if (approach > 0.82 && !humBloomed) { humBloomed = true; bloomTick(0.45); }
+      if (approach < 0.25) humBloomed = false;
+
+      orbitYaw += (targetYaw - orbitYaw) * Math.min(1, dt * 8);
+      orbitPitch += (targetPitch - orbitPitch) * Math.min(1, dt * 8);
+      const rad = 7.6;
+      camIdeal.set(
+        scoutPos.x + Math.sin(orbitYaw) * Math.cos(orbitPitch) * rad,
+        scoutPos.y + 1.35 + Math.sin(orbitPitch) * rad * 0.95,
+        scoutPos.z + Math.cos(orbitYaw) * Math.cos(orbitPitch) * rad
+      );
+      camera.position.lerp(camIdeal, reduced ? 1 : Math.min(1, dt * 4.2));
+      lookAt.set(scoutPos.x + scoutVel.x * 0.12, 1.15, scoutPos.z + scoutVel.z * 0.12);
+      camera.lookAt(lookAt);
+
+      const walkCycle = walking ? Math.sin(t * 11) : 0;
+      scoutParts.legL.rotation.x = walking ? walkCycle * 0.7 : Math.sin(t * 2) * 0.05;
+      scoutParts.legR.rotation.x = walking ? -walkCycle * 0.7 : Math.sin(t * 2 + 1) * 0.05;
+      scoutParts.armL.rotation.x = walking ? -walkCycle * 0.5 : 0;
+      scoutParts.armR.rotation.z = walking ? -0.28 + Math.sin(t * 10) * 0.18 : -0.35 + Math.sin(t * 5) * 0.45;
+      scoutParts.hips.position.y = 0.55 + (walking ? Math.abs(Math.sin(t * 11)) * 0.05 : Math.sin(t * 3) * 0.02);
+      scoutParts.tip.position.y = 1.33 + Math.sin(t * 4) * 0.03;
+      scoutParts.visor.material.emissiveIntensity = 0.42 + Math.sin(t * 3) * 0.14;
+      if (room === 6 && !walking) { scoutParts.armR.rotation.x = 0.9 + Math.sin(t * 2) * 0.1; scoutParts.armR.rotation.z = -0.12; }
+
+      if (archivist.visible) {
+        archivistParts.armR.rotation.z = -0.2 + Math.sin(t * 2.2) * 0.18;
+        archivist.lookAt(scoutPos.x, 1, scoutPos.z);
+        archivistParts.hips.position.y = 0.5 + Math.sin(t * 2.5) * 0.03;
       }
-      if (approach < 0.2) humBloomed = false;
+      if (auditor.visible) {
+        auditor.lookAt(scoutPos.x, 1, scoutPos.z);
+        auditorParts.armR.rotation.z = -0.55 + Math.sin(t * 1.8) * 0.1;
+        auditorParts.visor.material.emissiveIntensity = 0.55 + Math.sin(t * 4) * 0.22;
+      }
+
+      destMark.material.opacity = walking ? 0.85 : Math.max(0, destMark.material.opacity - dt * 1.4);
+      destMark.rotation.z = t * 1.6;
+      destMark.scale.setScalar(1 + Math.sin(t * 4) * 0.08);
+      pathGeo.setFromPoints([scoutPos.clone().setY(0.06), scoutDest.clone().setY(0.06)]);
+      pathLine.material.opacity = walking ? 0.45 : 0;
+
+      clickRings.forEach((r) => {
+        if (r.userData.life > 0) {
+          r.userData.life -= dt * 1.6;
+          r.scale.setScalar(0.4 + (1 - r.userData.life) * 2.4);
+          r.material.opacity = Math.max(0, r.userData.life) * 0.7;
+          if (r.userData.life <= 0) r.visible = false;
+        }
+      });
+      footprints.forEach((f) => {
+        if (!f.visible) return;
+        f.userData.life -= dt * 0.7;
+        f.material.opacity = Math.max(0, f.userData.life) * 0.35;
+        if (f.userData.life <= 0) f.visible = false;
+      });
+      if (walking) {
+        dust.material.opacity = 0.35;
+        const arr = dustGeo.attributes.position.array;
+        for (let i = 0; i < dustN; i++) {
+          arr[i * 3] = scoutPos.x + (Math.random() - 0.5) * 0.6;
+          arr[i * 3 + 1] = 0.1 + Math.random() * 0.4;
+          arr[i * 3 + 2] = scoutPos.z + (Math.random() - 0.5) * 0.6;
+        }
+        dustGeo.attributes.position.needsUpdate = true;
+      } else dust.material.opacity += (0 - dust.material.opacity) * Math.min(1, dt * 4);
+
+      animateProps(dt, t);
+      hoverPick();
 
       bloom = Math.max(0, bloom - dt * (reduced ? 3.2 : 2.1));
       const b = bloom * bloom * (3 - 2 * bloom);
       key.intensity = keyBase + b * 0.85;
-      blue.intensity = blueBase + b * 1.35;
+      blue.intensity = blueBase + b * 1.25;
       fill.intensity = fillBase + b * 0.4;
-      const fov = reduced ? 42 : 42 - b * 2.1;
-      if (Math.abs(camera.fov - fov) > 0.04) {
-        camera.fov = fov;
-        camera.updateProjectionMatrix();
-      }
+      const fov = reduced ? 46 : 46 - b * 2.2;
+      if (Math.abs(camera.fov - fov) > 0.05) { camera.fov = fov; camera.updateProjectionMatrix(); }
       Signal.readEq();
-
       if (renderer && !document.hidden) renderer.render(scene, camera);
     }
 
     updateHud();
     animate();
-
     addEventListener('resize', () => {
       camera.aspect = innerWidth / innerHeight;
       camera.updateProjectionMatrix();

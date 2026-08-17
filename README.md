@@ -23,14 +23,17 @@ Continuous Scout-led Three.js journey. Constraint-first: dark editorial stage, F
 
 Decorative metaphor only — Webflow Claim Ledger remains Approved CMS source of truth.
 
-Live: https://knarayanareddy.github.io/proofpress-evidence-portal/?v=9
+Live: https://knarayanareddy.github.io/proofpress-evidence-portal/?v=10
+
+## Move
+Click the floor or a placard — Scout walks that path (not a fixed track). Drag to look. WASD to steer. Chapter dots / Next station are shortcuts, not the only route.
 
 ## Signal (optional)
 Default **silent**. Press **Signal off** in the HUD to opt in. Oscillator bed only — no recorded tracks, no coin quest.
 
-- Scout lead: sparse tick
-- Room arrive: resolved fifth (Held: unresolved tritone)
-- Near a room threshold or the ledger portal: low hum + light bloom tick
+- Scout walking: sparse tick
+- Arriving at a station: resolved fifth (Held: unresolved tritone)
+- Near a station or the ledger portal: low hum + light bloom tick
 - CMS ledger / offscreen iframe: ducked to quiet
 
 Presentation notes: [`../NOTES.md`](../NOTES.md)
