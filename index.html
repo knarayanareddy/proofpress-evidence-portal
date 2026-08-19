@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>ProofPress — Guided Evidence World · v10 roam</title>
-  <!-- BUILD_STAMP: v10-free-roam-placards -->
+  <title>ProofPress — Guided Evidence World · v11 sylva</title>
+  <!-- BUILD_STAMP: v11-sylva-five -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet" />
@@ -46,19 +46,56 @@
       color: var(--paper); font-weight: 700;
       font-family: var(--font-display); font-size: 15px; text-transform: none; letter-spacing: .02em;
     }
-    .chapters {
+    /* ── proximity magnification dock ───────────────────────────────── */
+    .dock-wrap {
       position: absolute; top: 50%; right: 16px; transform: translateY(-50%);
-      display: flex; flex-direction: column; gap: 12px; z-index: 6;
+      display: flex; flex-direction: column; align-items: center; gap: 3px;
+      padding: 5px; z-index: 6;
+      background: linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,0) 42%),
+                  rgba(14,20,36,.76);
+      border: 1px solid rgba(255,255,255,.09);
     }
-    .chapters button {
-      width: 10px; height: 10px; border-radius: 50%; padding: 0; cursor: pointer;
-      border: 1px solid var(--signal-soft); background: transparent;
-      transition: background .25s var(--ease), box-shadow .25s var(--ease), transform .25s var(--ease);
+    /* alias so old JS selector still works */
+    .chapters { display: contents; }
+    .dock-pill {
+      position: relative; isolation: isolate;
+      width: 26px; height: 26px; border-radius: 7px; padding: 0; cursor: pointer;
+      border: 1px solid transparent;
+      background: rgba(255,255,255,.04);
+      color: var(--mist); will-change: transform,width,height;
+      transform-origin: 50% 0;
+      transition: color .18s var(--ease), border-color .2s var(--ease),
+                  background .2s var(--ease);
+      display: flex; align-items: center; justify-content: center;
+      font-family: var(--font-body); font-size: 9px; font-weight: 600;
+      letter-spacing: .08em; text-transform: uppercase;
+      white-space: nowrap; overflow: hidden;
+      /* --spec-angle and --spec-bright are set by JS */
+      --spec-angle: 2.4rad; --spec-bright: 0;
     }
-    .chapters button:hover { transform: scale(1.25); }
-    .chapters button[aria-current="true"] {
-      background: var(--signal-soft);
-      box-shadow: 0 0 12px rgba(79,124,255,.45);
+    .dock-pill::after {
+      content: ''; position: absolute; inset: -1px; z-index: 5;
+      padding: 1px; border-radius: inherit; pointer-events: none;
+      opacity: var(--spec-bright);
+      background: conic-gradient(from var(--spec-angle) at 50% 50%,
+        rgba(79,124,255,0) 0deg, rgba(79,124,255,.08) 14deg, rgba(79,124,255,.9) 28deg,
+        rgba(79,124,255,.14) 46deg, rgba(79,124,255,0) 68deg, rgba(79,124,255,0) 180deg,
+        rgba(79,124,255,.08) 194deg, rgba(79,124,255,.9) 208deg, rgba(79,124,255,.14) 226deg,
+        rgba(79,124,255,0) 248deg, rgba(79,124,255,0) 360deg);
+      -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+      mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+      -webkit-mask-composite: xor; mask-composite: exclude;
+    }
+    .dock-pill[data-near="true"] {
+      z-index: 7; color: var(--paper);
+      border-color: rgba(79,124,255,.28);
+      background: rgba(14,20,54,.94);
+      box-shadow: 0 5px 14px rgba(7,11,22,.28);
+    }
+    .dock-pill[aria-current="true"] {
+      background: rgba(79,124,255,.18);
+      border-color: var(--signal-soft);
+      color: var(--paper);
     }
     .progress {
       position: absolute; left: 0; top: 0; height: 2px; width: 0%; z-index: 7;
@@ -181,9 +218,9 @@
   <div class="flash" id="flash" aria-hidden="true"></div>
   <div class="topbar">
     <div class="brand">ProofPress</div>
-    <div class="hint">Click floor or card · Drag look · WASD</div>
+    <div class="hint">Click floor or card · Drag look · WASD · watch the pollen trail</div>
   </div>
-  <nav class="chapters" id="chapters" aria-label="Stations"></nav>
+  <nav class="dock-wrap" id="dockWrap" aria-label="Stations"><div class="chapters" id="chapters"></div></nav>
   <div class="hud">
     <div class="speech" id="speech">
       <div class="avatar" aria-hidden="true"></div>
@@ -255,6 +292,9 @@
       renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
       renderer.setPixelRatio(Math.min(devicePixelRatio, 1.75));
       renderer.setSize(innerWidth, innerHeight);
+      renderer.toneMapping = THREE.ACESFilmicToneMapping;
+      renderer.toneMappingExposure = 1.28;
+      renderer.outputColorSpace = THREE.SRGBColorSpace;
       document.body.prepend(renderer.domElement);
       renderer.domElement.setAttribute('role', 'img');
       renderer.domElement.setAttribute('aria-label', 'Walkable ProofPress evidence world. Click the floor or a placard so Scout walks there. Drag to look. WASD to steer.');
@@ -504,6 +544,167 @@
     const dust = new THREE.Points(dustGeo, new THREE.PointsMaterial({ color: 0x8aa4ff, size: 0.06, transparent: true, opacity: 0.0, depthWrite: false }));
     scene.add(dust);
 
+    /* ── GPU-animated ambient pollen (Sylva pattern) ───────────────────
+       Each mote carries a 4-float seed (phase, speed, sway, size-power).
+       uTime drives everything in the vertex shader — zero CPU per frame. */
+    const uPollenTime = { value: 0 };
+    if (!reduced) {
+      const POLLEN_N = 3200;
+      const pPos = new Float32Array(POLLEN_N * 3);
+      const pSeed = new Float32Array(POLLEN_N * 4);
+      for (let i = 0; i < POLLEN_N; i++) {
+        pPos[i * 3]     = (Math.random() - 0.5) * 22;
+        pPos[i * 3 + 1] = Math.random() * 5.5;
+        pPos[i * 3 + 2] = Math.random() * 88 - 80;
+        pSeed[i * 4]     = Math.random() * 6.2832;          // phase
+        pSeed[i * 4 + 1] = 0.28 + Math.random() * 0.9;     // speed
+        pSeed[i * 4 + 2] = 0.4  + Math.random() * 1.4;     // sway
+        pSeed[i * 4 + 3] = 0.65 + 1.1 * Math.pow(Math.random(), 2.2); // size
+      }
+      const pg = new THREE.BufferGeometry();
+      pg.setAttribute('position', new THREE.BufferAttribute(pPos, 3));
+      pg.setAttribute('seed',     new THREE.BufferAttribute(pSeed, 4));
+      const pollenMesh = new THREE.Points(pg, new THREE.ShaderMaterial({
+        uniforms: { uTime: uPollenTime },
+        transparent: true, depthWrite: false, depthTest: true,
+        blending: THREE.AdditiveBlending,
+        vertexShader: `
+          attribute vec4 seed;
+          uniform float uTime;
+          varying float vFade;
+          void main() {
+            float ph = seed.x, sp = seed.y, am = seed.z;
+            vec3 p = position;
+            p.x += sin(uTime * sp * 0.38 + ph) * 1.8 * am;
+            float climb = mod(uTime * 0.9 * sp + ph * 14.0, 5.5);
+            p.y = climb;
+            p.z += cos(uTime * sp * 0.3 + ph) * 1.2 * am;
+            vec4 mv = modelViewMatrix * vec4(p, 1.0);
+            gl_PointSize = seed.w * 3.8 * (340.0 / max(-mv.z, 1.0));
+            float edge = 1.0 - abs(climb - 2.75) / 2.75;
+            float twinkle = 0.55 + 0.45 * sin(uTime * (0.7 + sp * 1.6) + ph * 3.1);
+            vFade = clamp(edge * 3.0, 0.0, 1.0) * twinkle;
+            gl_Position = projectionMatrix * mv;
+          }
+        `,
+        fragmentShader: `
+          precision highp float;
+          varying float vFade;
+          void main() {
+            vec2 uv = gl_PointCoord - 0.5;
+            float d = 1.0 - smoothstep(0.18, 0.5, length(uv));
+            gl_FragColor = vec4(0.55, 0.75, 1.0, d * vFade * 0.45);
+          }
+        `,
+      }));
+      pollenMesh.frustumCulled = false;
+      pollenMesh.renderOrder = 5;
+      scene.add(pollenMesh);
+    }
+
+    /* ── Distance-emitted cursor spray (Sylva pattern) ─────────────────
+       Emitted by distance traveled in 3D (not by time/events).
+       620-grain ring buffer; flight integrated in vertex shader. */
+    const SPRAY_N = 620, SPRAY_LIFE = 1.8;
+    let spray = null, sprayPos, sprayVel, sprayBirth, sprayRnd;
+    let sprayHead = 0, sprayIdle = 0, sprayDirty = false;
+    const sprayPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0); // floor y=0
+    const sprayAt = new THREE.Vector3(), sprayLast = new THREE.Vector3(9999, 0, 0);
+    const sprayStep = new THREE.Vector3();
+    let sprayMouseLive = false;
+    const uSprayTime = { value: 0 };
+
+    if (!reduced && renderer) {
+      sprayPos   = new Float32Array(SPRAY_N * 3);
+      sprayVel   = new Float32Array(SPRAY_N * 3);
+      sprayBirth = new Float32Array(SPRAY_N);
+      sprayRnd   = new Float32Array(SPRAY_N * 2);
+      for (let i = 0; i < SPRAY_N; i++) sprayBirth[i] = -999;
+      const sg = new THREE.BufferGeometry();
+      sg.setAttribute('position', new THREE.BufferAttribute(sprayPos, 3));
+      sg.setAttribute('aVel',     new THREE.BufferAttribute(sprayVel, 3));
+      sg.setAttribute('aBirth',   new THREE.BufferAttribute(sprayBirth, 1));
+      sg.setAttribute('aRnd',     new THREE.BufferAttribute(sprayRnd, 2));
+      spray = new THREE.Points(sg, new THREE.ShaderMaterial({
+        uniforms: { uTime: uSprayTime, uLife: { value: SPRAY_LIFE } },
+        transparent: true, depthWrite: false, depthTest: false,
+        blending: THREE.AdditiveBlending,
+        vertexShader: `
+          attribute vec3 aVel;
+          attribute float aBirth;
+          attribute vec2 aRnd;
+          uniform float uTime, uLife;
+          varying float vAlpha;
+          void main() {
+            float age = uTime - aBirth;
+            float t = age / uLife;
+            vAlpha = (age < 0.0 || t > 1.0) ? 0.0
+                   : smoothstep(0.0, 0.08, t) * (1.0 - smoothstep(0.6, 1.0, t));
+            vec3 p = position + aVel * age;
+            p.y += 0.22 * age * age;                   // rise
+            p.x += sin(aBirth * 17.3 + aRnd.x * 6.28) * age * 0.45; // drift
+            vec4 mv = modelViewMatrix * vec4(p, 1.0);
+            gl_PointSize = (3.5 + aRnd.y * 4.5) * (260.0 / max(-mv.z, 1.0));
+            gl_Position = projectionMatrix * mv;
+          }
+        `,
+        fragmentShader: `
+          precision highp float;
+          varying float vAlpha;
+          void main() {
+            vec2 uv = gl_PointCoord - 0.5;
+            float d = 1.0 - smoothstep(0.15, 0.5, length(uv));
+            gl_FragColor = vec4(0.42, 0.82, 0.65, d * vAlpha * 0.65);
+          }
+        `,
+      }));
+      spray.frustumCulled = false;
+      spray.renderOrder = 6;
+      scene.add(spray);
+    }
+
+    function spawnSprayGrain(origin, speed = 1.0) {
+      if (!spray) return;
+      const i = sprayHead++ % SPRAY_N;
+      sprayPos[i*3]   = origin.x; sprayPos[i*3+1] = origin.y; sprayPos[i*3+2] = origin.z;
+      const angle = Math.random() * Math.PI * 2;
+      sprayVel[i*3]   = Math.cos(angle) * speed * (0.35 + Math.random() * 0.65);
+      sprayVel[i*3+1] = speed * (0.15 + Math.random() * 0.35);
+      sprayVel[i*3+2] = Math.sin(angle) * speed * (0.35 + Math.random() * 0.65);
+      sprayBirth[i]   = uSprayTime.value;
+      sprayRnd[i*2]   = Math.random(); sprayRnd[i*2+1] = Math.random();
+      sprayDirty = true;
+    }
+
+    function flushSpray() {
+      if (!spray || !sprayDirty) return;
+      const at = spray.geometry.attributes;
+      at.position.needsUpdate = at.aVel.needsUpdate = at.aBirth.needsUpdate = at.aRnd.needsUpdate = true;
+      sprayDirty = false;
+    }
+
+    const sprayNdc = new THREE.Vector2();
+    function emitSpray() {
+      if (!spray || !renderer) return;
+      sprayNdc.set((pointerX / innerWidth) * 2 - 1, -(pointerY / innerHeight) * 2 + 1);
+      raycaster.setFromCamera(sprayNdc, camera);
+      sprayMouseLive = !!raycaster.ray.intersectPlane(sprayPlane, sprayAt);
+      if (!sprayMouseLive) { sprayLast.x = 9999; return; }
+      if (sprayLast.x > 9000) { sprayLast.copy(sprayAt); return; }
+      const d = sprayAt.distanceTo(sprayLast);
+      const n = Math.min(12, Math.floor(d / 0.55));
+      for (let k = 1; k <= n; k++) {
+        sprayStep.lerpVectors(sprayLast, sprayAt, k / n);
+        spawnSprayGrain(sprayStep, 0.9);
+      }
+      if (n > 0) sprayLast.copy(sprayAt);
+      else {
+        sprayIdle += 0.016;
+        if (sprayIdle > 0.06) { spawnSprayGrain(sprayAt, 0.3); sprayIdle = 0; }
+      }
+      flushSpray();
+    }
+
     addFloorPad(0);
     const welcomeRing = new THREE.Mesh(
       new THREE.TorusGeometry(1.7, 0.05, 14, 72),
@@ -624,6 +825,182 @@
     pickables.push(humanPortal); scene.add(humanPortal);
 
     const stands = ROOMS.map((r) => new THREE.Vector3(r.x, 0, r.z + 3.2));
+
+    /* ── Data moth FSM (Sylva butterfly pattern) ─────────────────────
+       cruise → approach → settle → takeoff, with physical bank angle
+       derived from lateral acceleration, not a formula.
+       Lives near the Approved zone (room 04–05), orbits the placards. */
+    let mothObj = null;
+    if (!reduced) {
+      const MOTH_BOX = { x0: -4, x1: 4, y0: 1.2, y1: 3.8, z0: -54, z1: -40 };
+      function randInBox() {
+        return new THREE.Vector3(
+          MOTH_BOX.x0 + Math.random() * (MOTH_BOX.x1 - MOTH_BOX.x0),
+          MOTH_BOX.y0 + Math.random() * (MOTH_BOX.y1 - MOTH_BOX.y0),
+          MOTH_BOX.z0 + Math.random() * (MOTH_BOX.z1 - MOTH_BOX.z0)
+        );
+      }
+
+      // build a simple disc-wing moth from thin planes
+      const mothGroup = new THREE.Group();
+      const wingMat = new THREE.MeshStandardMaterial({
+        color: 0x14b87a, emissive: 0x14b87a, emissiveIntensity: 0.55,
+        transparent: true, opacity: 0.72, side: THREE.DoubleSide,
+        metalness: 0.2, roughness: 0.55,
+      });
+      // fore-wings (left/right)
+      [-1, 1].forEach((sx) => {
+        const g = new THREE.BufferGeometry();
+        const NS = 14, NU = 8;
+        const pos = [], uv = [], idx = [];
+        for (let ii = 0; ii < NS; ii++) {
+          const sp = ii / (NS - 1);
+          const chord = (0.48 + 0.38 * sp) * Math.pow(Math.max(0, 1 - Math.pow(sp, 2.4)), 0.5);
+          for (let jj = 0; jj < NU; jj++) {
+            const u = jj / (NU - 1);
+            pos.push(sx * 0.015 + sx * sp * 0.62, chord * 0.18 * Math.sin(Math.PI * u), -chord * u + chord * 0.1);
+            uv.push(sp, u);
+          }
+        }
+        for (let ii = 0; ii < NS - 1; ii++) for (let jj = 0; jj < NU - 1; jj++) {
+          const a = ii * NU + jj, b = a + NU;
+          idx.push(a, b, a + 1, b, b + 1, a + 1);
+        }
+        g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+        g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+        g.setIndex(idx); g.computeVertexNormals();
+        mothGroup.add(new THREE.Mesh(g, wingMat));
+      });
+      // body
+      const bodyMesh = new THREE.Mesh(
+        new THREE.CapsuleGeometry(0.028, 0.18, 4, 8),
+        new THREE.MeshStandardMaterial({ color: 0x0a1c14, metalness: 0.3, roughness: 0.6 })
+      );
+      bodyMesh.rotation.x = Math.PI / 2;
+      mothGroup.add(bodyMesh);
+      const mothLight = new THREE.PointLight(0x14b87a, 0.45, 3.5);
+      mothGroup.add(mothLight);
+
+      mothGroup.scale.setScalar(0.72);
+      mothGroup.renderOrder = 4;
+      mothGroup.traverse((o) => { o.frustumCulled = false; });
+      scene.add(mothGroup);
+
+      // FSM state
+      const perch = new THREE.Vector3(-1.2, 2.1, -47.5);
+      const mothSt = {
+        pos: randInBox(), vel: new THREE.Vector3(0.2, 0, 0.1),
+        acc: new THREE.Vector3(), tgt: randInBox(),
+        mode: 'cruise', timer: 3.0, settle: 0, bank: 0, flap: 0,
+        spook: 0,
+      };
+      const _vFwd = new THREE.Vector3(), _vRight = new THREE.Vector3(),
+            _vUp = new THREE.Vector3(), _prevVel = new THREE.Vector3(),
+            _basis = new THREE.Matrix4(), _flightQ = new THREE.Quaternion(),
+            _landQ = new THREE.Quaternion(), _qTmp = new THREE.Quaternion(),
+            _away = new THREE.Vector3(), _AX_Z = new THREE.Vector3(0,0,1),
+            _AX_X = new THREE.Vector3(1,0,0), _UP = new THREE.Vector3(0,1,0),
+            _desired = new THREE.Vector3(), _tmp2 = new THREE.Vector3();
+      // land quaternion: dorsal to camera, head up
+      _landQ.setFromEuler(new THREE.Euler(-Math.PI / 2, 0, 0));
+
+      function containMoth(d) {
+        if (d.x < MOTH_BOX.x0) d.x = MOTH_BOX.x0;
+        if (d.x > MOTH_BOX.x1) d.x = MOTH_BOX.x1;
+        if (d.y < MOTH_BOX.y0) d.y = MOTH_BOX.y0;
+        if (d.y > MOTH_BOX.y1) d.y = MOTH_BOX.y1;
+        if (d.z < MOTH_BOX.z0) d.z = MOTH_BOX.z0;
+        if (d.z > MOTH_BOX.z1) d.z = MOTH_BOX.z1;
+      }
+
+      mothObj = function tickMoth(dt, t) {
+        mothSt.timer -= dt;
+        mothSt.flap += dt * (mothSt.mode === 'settle' ? 2.5 : 6.5);
+
+        // pointer spook
+        const scoutDist = mothSt.pos.distanceTo(new THREE.Vector3(scoutPos.x, mothSt.pos.y, scoutPos.z));
+        mothSt.spook = Math.max(0, mothSt.spook - dt * 1.5);
+        if (scoutDist < 2.8) mothSt.spook = Math.min(1, mothSt.spook + dt * 3.0);
+
+        // state machine
+        if (mothSt.mode === 'cruise' && mothSt.timer <= 0) {
+          if (Math.random() < 0.3) { mothSt.mode = 'approach'; mothSt.tgt.copy(perch); }
+          else { mothSt.tgt.copy(randInBox()); mothSt.timer = 2.5 + Math.random() * 4; }
+        }
+        if (mothSt.mode === 'approach') {
+          const d = mothSt.pos.distanceTo(perch);
+          if (d < 0.35) { mothSt.mode = 'settle'; mothSt.settle = 0; mothSt.timer = 2.5 + Math.random() * 3; }
+        }
+        if (mothSt.mode === 'settle') {
+          mothSt.settle = Math.min(1, mothSt.settle + dt * 3.5);
+          if (mothSt.timer <= 0 || mothSt.spook > 0.4) { mothSt.mode = 'takeoff'; mothSt.timer = 0.6; }
+        }
+        if (mothSt.mode === 'takeoff' && mothSt.timer <= 0) {
+          mothSt.settle = 0; mothSt.mode = 'cruise'; mothSt.tgt.copy(randInBox()); mothSt.timer = 3 + Math.random() * 3;
+        }
+
+        // flap shape
+        const raw = Math.sin(mothSt.flap);
+        const shaped = (raw < 0 ? -1 : 1) * Math.pow(Math.abs(raw), 0.72);
+        const flyPhi = 28 + 44 * shaped;
+        const restPhi = 10 + 6 * shaped + mothSt.spook * 22;
+        const phi = THREE.MathUtils.lerp(flyPhi, restPhi, mothSt.settle) * Math.PI / 180;
+        const flapVel = Math.cos(mothSt.flap) * (mothSt.mode === 'settle' ? 2.5 : 6.5);
+        mothGroup.children[0].rotation.z =  phi;   // right wing
+        mothGroup.children[1].rotation.z = -phi;   // left wing
+        // bend tip of wing
+        wingMat.emissiveIntensity = 0.45 + Math.abs(shaped) * 0.35;
+
+        // movement
+        const goal = (mothSt.mode === 'approach' || mothSt.mode === 'settle') ? perch : mothSt.tgt;
+        _tmp2.copy(goal).sub(mothSt.pos);
+        const dist2 = _tmp2.length();
+        const speed = Math.min(1.8, 0.18 + dist2 * 0.9);
+        _desired.copy(_tmp2).normalize().multiplyScalar(speed);
+        const wander = mothSt.mode === 'approach' ? Math.min(1, dist2 * 0.7) : 1;
+        _desired.x += (Math.sin(t * 2.8) + 0.6 * Math.sin(t * 7.1 + 1.1)) * 0.22 * wander;
+        _desired.y += (Math.sin(t * 1.7 + 1.7) + 0.55 * Math.sin(t * 4.3)) * 0.28 * wander;
+        _desired.z += Math.sin(t * 2.4 + 3.1) * 0.18 * wander;
+        if (mothSt.mode === 'takeoff') { _desired.y += 0.6; _desired.z += 0.25; }
+        if (mothSt.spook > 0.01) {
+          _away.copy(mothSt.pos).sub(new THREE.Vector3(scoutPos.x, mothSt.pos.y, scoutPos.z));
+          if (_away.lengthSq() > 1e-6) _desired.addScaledVector(_away.normalize(), mothSt.spook * 2.5);
+        }
+        containMoth(_desired);
+
+        _prevVel.copy(mothSt.vel);
+        /* frame-rate-independent spring: coeff 0.022 */
+        mothSt.vel.lerp(_desired, 1 - Math.pow(0.022, dt));
+        mothSt.acc.copy(mothSt.vel).sub(_prevVel).divideScalar(Math.max(dt, 1e-4));
+        mothSt.pos.addScaledVector(mothSt.vel, dt);
+        if (mothSt.settle > 0.001) {
+          mothSt.pos.lerp(perch, Math.min(1, dt * 5 * mothSt.settle));
+          mothSt.vel.multiplyScalar(1 - Math.min(1, dt * 5 * mothSt.settle));
+        }
+
+        // orientation: physical bank from lateral acceleration
+        _vFwd.copy(mothSt.vel);
+        if (_vFwd.lengthSq() < 1e-6) _vFwd.set(0, 0, 1);
+        _vFwd.normalize();
+        _vRight.crossVectors(_vFwd, _UP);
+        if (_vRight.lengthSq() < 1e-6) _vRight.set(1, 0, 0);
+        _vRight.normalize();
+        _vUp.crossVectors(_vRight, _vFwd).normalize();
+        const lateral = _vRight.dot(mothSt.acc);
+        mothSt.bank += (Math.max(-1.1, Math.min(1.1, -lateral * 0.38)) - mothSt.bank) * Math.min(1, dt * 5);
+        _basis.makeBasis(_vRight, _vUp, _vFwd);
+        _flightQ.setFromRotationMatrix(_basis);
+        _qTmp.setFromAxisAngle(_AX_Z, mothSt.bank + Math.sin(t * 0.8) * 0.28 + Math.sin(mothSt.flap) * 0.04 + Math.sin(t * 19) * mothSt.spook * 0.14);
+        _flightQ.multiply(_qTmp);
+        _qTmp.setFromAxisAngle(_AX_X, Math.sin(mothSt.flap) * 0.08 - 0.05);
+        _flightQ.multiply(_qTmp);
+
+        mothGroup.quaternion.copy(_flightQ).slerp(_landQ, mothSt.settle);
+        mothGroup.position.copy(mothSt.pos);
+        mothGroup.position.y += Math.sin(mothSt.flap - 0.9) * 0.018 * (1 - mothSt.settle);
+        mothLight.intensity = 0.32 + mothSt.settle * 0.28 + Math.abs(shaped) * 0.18;
+      };
+    }
 
     const followBtn = document.getElementById('follow');
     const prevBtn = document.getElementById('prev');
@@ -800,10 +1177,38 @@
 
     ROOMS.forEach((r, i) => {
       const b = document.createElement('button');
-      b.type = 'button'; b.title = r.title;
+      b.type = 'button'; b.title = r.title; b.className = 'dock-pill';
+      b.textContent = String(i + 1).padStart(2, '0');
       b.addEventListener('click', () => goToRoom(i, false));
       chapters.appendChild(b);
     });
+
+    /* ── dock proximity magnification ─────────────────────────────── */
+    const dockWrap = document.getElementById('dockWrap');
+    {
+      const pills = () => [...dockWrap.querySelectorAll('.dock-pill')];
+      let mx = -9999, my = -9999;
+      document.addEventListener('mousemove', (e) => { mx = e.clientX; my = e.clientY; });
+      const FALLOFF = 80, GROW = 1.45;
+      function tickDock() {
+        const r = dockWrap.getBoundingClientRect();
+        pills().forEach((pill) => {
+          const pr = pill.getBoundingClientRect();
+          const cx = pr.left + pr.width / 2, cy = pr.top + pr.height / 2;
+          const d = Math.hypot(mx - cx, my - cy);
+          const proximity = Math.max(0, 1 - d / FALLOFF);
+          const s = 1 + proximity * (GROW - 1);
+          pill.style.transform = `scaleY(${s.toFixed(3)})`;
+          pill.style.width = `${Math.round(26 + proximity * 20)}px`;
+          pill.dataset.near = proximity > 0.35 ? 'true' : 'false';
+          /* specular rim: angle from pill centre to pointer */
+          const angle = Math.atan2(my - cy, mx - cx);
+          pill.style.setProperty('--spec-angle', `${(angle + Math.PI).toFixed(3)}rad`);
+          pill.style.setProperty('--spec-bright', (proximity * 0.85).toFixed(3));
+        });
+      }
+      setInterval(tickDock, 16);
+    }
 
     followBtn.addEventListener('click', (e) => { e.preventDefault(); goToRoom(room >= lastRoom ? 0 : room + 1); });
     prevBtn.addEventListener('click', (e) => { e.preventDefault(); if (room > 0) goToRoom(room - 1); });
@@ -1078,15 +1483,17 @@
       if (approach > 0.82 && !humBloomed) { humBloomed = true; bloomTick(0.45); }
       if (approach < 0.25) humBloomed = false;
 
-      orbitYaw += (targetYaw - orbitYaw) * Math.min(1, dt * 8);
-      orbitPitch += (targetPitch - orbitPitch) * Math.min(1, dt * 8);
+      /* frame-rate-independent spring: coeff = 0.0008 → half-life ~110 ms */
+      const springK = 1 - Math.pow(0.0008, dt);
+      orbitYaw += (targetYaw - orbitYaw) * springK;
+      orbitPitch += (targetPitch - orbitPitch) * springK;
       const rad = 7.6;
       camIdeal.set(
         scoutPos.x + Math.sin(orbitYaw) * Math.cos(orbitPitch) * rad,
         scoutPos.y + 1.35 + Math.sin(orbitPitch) * rad * 0.95,
         scoutPos.z + Math.cos(orbitYaw) * Math.cos(orbitPitch) * rad
       );
-      camera.position.lerp(camIdeal, reduced ? 1 : Math.min(1, dt * 4.2));
+      camera.position.lerp(camIdeal, reduced ? 1 : 1 - Math.pow(0.006, dt));
       lookAt.set(scoutPos.x + scoutVel.x * 0.12, 1.15, scoutPos.z + scoutVel.z * 0.12);
       camera.lookAt(lookAt);
 
@@ -1144,6 +1551,14 @@
 
       animateProps(dt, t);
       hoverPick();
+
+      /* GPU particle time uniforms */
+      uPollenTime.value += dt;
+      uSprayTime.value += dt;
+      emitSpray();
+
+      /* data moth */
+      if (mothObj) mothObj(dt, t);
 
       bloom = Math.max(0, bloom - dt * (reduced ? 3.2 : 2.1));
       const b = bloom * bloom * (3 - 2 * bloom);
